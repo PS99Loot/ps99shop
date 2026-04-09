@@ -1,79 +1,147 @@
-import { useState, useMemo } from 'react';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Minus, Plus, ShoppingCart, Zap, Shield, Package } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import ProductCard from '@/components/store/ProductCard';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useCart } from '@/contexts/CartContext';
+
+const PRICE_PER_HUGE = 0.15;
+
+const QUICK_AMOUNTS = [5, 10, 25, 50, 100];
 
 const ShopPage = () => {
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('featured');
-  const [filter, setFilter] = useState('all');
+  const [quantity, setQuantity] = useState(10);
+  const { addItem } = useCart();
+  const navigate = useNavigate();
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: async () => {
-      const { data } = await supabase.from('products').select('*').eq('active', true);
-      return data || [];
-    },
-  });
+  const total = (quantity * PRICE_PER_HUGE).toFixed(2);
 
-  const filtered = useMemo(() => {
-    let list = products || [];
-    if (search) list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-    if (filter === 'instock') list = list.filter(p => p.stock_quantity - p.reserved_quantity > 0);
-    if (filter === 'featured') list = list.filter(p => p.featured);
-    if (sort === 'price_asc') list = [...list].sort((a, b) => Number(a.price_usd) - Number(b.price_usd));
-    if (sort === 'price_desc') list = [...list].sort((a, b) => Number(b.price_usd) - Number(a.price_usd));
-    if (sort === 'featured') list = [...list].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-    return list;
-  }, [products, search, sort, filter]);
+  const handleAddToCart = () => {
+    addItem({
+      id: 'random-huges',
+      name: 'Random Huges',
+      slug: 'random-huges',
+      price_usd: PRICE_PER_HUGE,
+      image_url: null,
+      stock_quantity: 9999,
+    }, quantity);
+    navigate('/cart');
+  };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-10">
-        <h1 className="font-display text-3xl font-bold mb-8">Shop Huges</h1>
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search Huges..." className="pl-10 bg-card" value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-48 bg-card"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="featured">Featured</SelectItem>
-              <SelectItem value="price_asc">Price: Low to High</SelectItem>
-              <SelectItem value="price_desc">Price: High to Low</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-48 bg-card"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Items</SelectItem>
-              <SelectItem value="instock">In Stock Only</SelectItem>
-              <SelectItem value="featured">Featured Only</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="font-display text-4xl md:text-5xl font-black mb-4">
+            Buy Random Huges
+          </h1>
+          <p className="text-muted-foreground text-lg mb-10">
+            Each Huge is randomly selected from our inventory and delivered manually in Roblox.
+            You don't choose which Huge you get — that's part of the fun!
+          </p>
 
-        {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-lg bg-card border border-border animate-pulse aspect-[3/4]" />
-            ))}
+          {/* Price Card */}
+          <div className="bg-card border border-primary/30 rounded-2xl p-8 glow-primary mb-8">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Package className="h-6 w-6 text-primary" />
+              <span className="font-display text-xl font-bold">Random Huge</span>
+            </div>
+
+            <div className="text-5xl font-display font-black text-primary mb-2">
+              $0.15
+            </div>
+            <p className="text-sm text-muted-foreground mb-8">per Huge</p>
+
+            {/* Quantity Selector */}
+            <div className="mb-6">
+              <p className="text-sm font-semibold mb-3">How many?</p>
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 rounded-xl"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  <Minus className="h-5 w-5" />
+                </Button>
+                <div className="w-24 text-center">
+                  <input
+                    type="number"
+                    min={1}
+                    max={9999}
+                    value={quantity}
+                    onChange={e => setQuantity(Math.max(1, Math.min(9999, parseInt(e.target.value) || 1)))}
+                    className="w-full text-center text-3xl font-display font-bold bg-transparent border-b-2 border-primary/50 focus:border-primary outline-none"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 rounded-xl"
+                  onClick={() => setQuantity(Math.min(9999, quantity + 1))}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Quick amounts */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {QUICK_AMOUNTS.map(amt => (
+                  <Button
+                    key={amt}
+                    variant={quantity === amt ? 'default' : 'outline'}
+                    size="sm"
+                    className={quantity === amt ? 'gradient-primary text-primary-foreground' : ''}
+                    onClick={() => setQuantity(amt)}
+                  >
+                    {amt}x
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Total */}
+            <div className="border-t border-border pt-6 mb-6">
+              <div className="flex justify-between items-center text-lg">
+                <span className="text-muted-foreground">{quantity}x Random Huges</span>
+                <span className="font-display font-bold text-2xl">${total}</span>
+              </div>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full gradient-primary text-primary-foreground glow-primary text-lg h-14"
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart — ${total}
+            </Button>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <p className="text-lg">No products found</p>
-            <p className="text-sm mt-2">Try adjusting your search or filters</p>
+
+          {/* Trust Points */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
+              <Zap className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-semibold">Fast Delivery</p>
+                <p className="text-xs text-muted-foreground">Delivered in Roblox manually</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
+              <Shield className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-semibold">100% Legit</p>
+                <p className="text-xs text-muted-foreground">All Huges are legitimate items</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
+              <Package className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-semibold">Random Selection</p>
+                <p className="text-xs text-muted-foreground">Get a surprise mix of Huges</p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {filtered.map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        )}
+        </div>
       </div>
     </Layout>
   );
