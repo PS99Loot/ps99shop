@@ -1,10 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Search, Shield, Zap, MessageCircle, Bitcoin, CheckCircle, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Search, Shield, Zap, MessageCircle, Bitcoin, CheckCircle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import ProductCard from '@/components/store/ProductCard';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 
 const TRUST_ITEMS = [
   { icon: Shield, title: 'Manual Safe Delivery', desc: 'Every item delivered personally in Roblox' },
