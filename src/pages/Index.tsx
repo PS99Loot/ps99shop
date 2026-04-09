@@ -1,10 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Search, Shield, Zap, MessageCircle, Bitcoin, CheckCircle, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Search, Shield, Zap, MessageCircle, Bitcoin, CheckCircle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import ProductCard from '@/components/store/ProductCard';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 
 const TRUST_ITEMS = [
   { icon: Shield, title: 'Manual Safe Delivery', desc: 'Every item delivered personally in Roblox' },
@@ -21,22 +18,14 @@ const STEPS = [
 ];
 
 const MOCK_ACTIVITY = [
-  { user: 'R***x_Player', item: 'Huge Hell Rock', time: '2 min ago' },
-  { user: 'G***r_2024', item: 'Huge Gargoyle Dragon', time: '5 min ago' },
-  { user: 'P***t_King', item: 'Huge Empyrean Dragon', time: '12 min ago' },
-  { user: 'S***r_Pro99', item: 'Huge Cosmic Agony', time: '18 min ago' },
-  { user: 'B***y_Master', item: 'Huge Storm Agony', time: '25 min ago' },
+  { user: 'R***x_Player', count: 13, time: '2 min ago' },
+  { user: 'G***r_2024', count: 7, time: '5 min ago' },
+  { user: 'P***t_King', count: 25, time: '12 min ago' },
+  { user: 'S***r_Pro99', count: 4, time: '18 min ago' },
+  { user: 'B***y_Master', count: 50, time: '25 min ago' },
 ];
 
 const Index = () => {
-  const { data: featured } = useQuery({
-    queryKey: ['featured-products'],
-    queryFn: async () => {
-      const { data } = await supabase.from('products').select('*').eq('active', true).eq('featured', true).limit(4);
-      return data || [];
-    },
-  });
-
   return (
     <Layout>
       {/* Hero */}
@@ -44,17 +33,17 @@ const Index = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(217_91%_60%/0.15),transparent_60%)]" />
         <div className="container mx-auto px-4 text-center relative z-10">
           <h1 className="font-display text-4xl md:text-6xl font-black mb-6 leading-tight">
-            Cheap Pet Sim 99 Huges
+            Random Pet Sim 99 Huges
             <br />
-            <span className="text-gradient">Delivered Fast</span>
+            <span className="text-gradient">Only $0.15 Each</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            The world's cheapest Pet Simulator 99 marketplace. Pay with crypto, get your Huges delivered manually in Roblox. Fast, safe, and trusted.
+            The cheapest Random Huges in Pet Simulator 99. Pick your quantity, pay with crypto, and get random Huges delivered manually in Roblox.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/shop">
               <Button size="lg" className="gradient-primary text-primary-foreground font-semibold glow-primary px-8">
-                <ShoppingCart className="mr-2 h-5 w-5" /> Shop Huges
+                <ShoppingCart className="mr-2 h-5 w-5" /> Buy Random Huges
               </Button>
             </Link>
             <Link to="/track">
@@ -85,22 +74,20 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Products */}
-      {featured && featured.length > 0 && (
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="font-display text-2xl font-bold">Featured Huges</h2>
-              <Link to="/shop" className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
-                View All <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {featured.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
+      {/* CTA Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-lg mx-auto bg-card border border-primary/30 rounded-2xl p-8 glow-primary">
+            <h2 className="font-display text-3xl font-bold mb-2">$0.15 per Huge</h2>
+            <p className="text-muted-foreground mb-6">Pick your quantity and get random Huges delivered to you in Roblox.</p>
+            <Link to="/shop">
+              <Button size="lg" className="gradient-primary text-primary-foreground glow-primary px-10">
+                <ShoppingCart className="mr-2 h-5 w-5" /> Buy Now
+              </Button>
+            </Link>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* How It Works */}
       <section className="py-16 bg-card/30">
@@ -129,7 +116,7 @@ const Index = () => {
               <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-card border border-border">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="h-4 w-4 text-success" />
-                  <span className="text-sm"><span className="text-muted-foreground">{a.user}</span> received <span className="font-semibold">{a.item}</span></span>
+                  <span className="text-sm"><span className="text-muted-foreground">{a.user}</span> received <span className="font-semibold">{a.count}x Random Huges</span></span>
                 </div>
                 <span className="text-xs text-muted-foreground">{a.time}</span>
               </div>
