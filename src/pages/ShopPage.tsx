@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, ShoppingCart, Zap, Shield, Package } from 'lucide-react';
@@ -6,30 +6,78 @@ import Layout from '@/components/layout/Layout';
 import { useCart } from '@/contexts/CartContext';
 
 const PRICE_PER_HUGE = 0.15;
-
 const QUICK_AMOUNTS = [5, 10, 25, 50, 100];
 
 const ShopPage = () => {
   const [quantity, setQuantity] = useState(10);
+  const [flyingItem, setFlyingItem] = useState<{ x: number; y: number; targetX: number; targetY: number } | null>(null);
   const { addItem } = useCart();
   const navigate = useNavigate();
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const total = (quantity * PRICE_PER_HUGE).toFixed(2);
 
   const handleAddToCart = () => {
-    addItem({
-      id: 'random-huges',
-      name: 'Random Huges',
-      slug: 'random-huges',
-      price_usd: PRICE_PER_HUGE,
-      image_url: null,
-      stock_quantity: 9999,
-    }, quantity);
-    navigate('/cart');
+    // Get the card position for animation start
+    const card = cardRef.current;
+    const cartIcon = document.querySelector('[data-cart-icon]');
+
+    if (card && cartIcon) {
+      const cardRect = card.getBoundingClientRect();
+      const cartRect = cartIcon.getBoundingClientRect();
+
+      setFlyingItem({
+        x: cardRect.left + cardRect.width / 2,
+        y: cardRect.top + cardRect.height / 3,
+        targetX: cartRect.left + cartRect.width / 2,
+        targetY: cartRect.top + cartRect.height / 2,
+      });
+
+      setTimeout(() => {
+        setFlyingItem(null);
+        addItem({
+          id: 'random-huges',
+          name: 'Random Huges',
+          slug: 'random-huges',
+          price_usd: PRICE_PER_HUGE,
+          image_url: null,
+          stock_quantity: 9999,
+        }, quantity);
+        navigate('/cart');
+      }, 600);
+    } else {
+      addItem({
+        id: 'random-huges',
+        name: 'Random Huges',
+        slug: 'random-huges',
+        price_usd: PRICE_PER_HUGE,
+        image_url: null,
+        stock_quantity: 9999,
+      }, quantity);
+      navigate('/cart');
+    }
   };
 
   return (
     <Layout>
+      {/* Flying animation element */}
+      {flyingItem && (
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            left: flyingItem.x,
+            top: flyingItem.y,
+            animation: 'flyToCart 0.6s ease-in forwards',
+            '--target-x': `${flyingItem.targetX - flyingItem.x}px`,
+            '--target-y': `${flyingItem.targetY - flyingItem.y}px`,
+          } as React.CSSProperties}
+        >
+          <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center shadow-lg shadow-primary/50">
+            <Package className="h-6 w-6 text-primary-foreground" />
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="font-display text-4xl md:text-5xl font-black mb-4">
@@ -41,7 +89,7 @@ const ShopPage = () => {
           </p>
 
           {/* Price Card */}
-          <div className="bg-card border border-primary/30 rounded-2xl p-8 glow-primary mb-8">
+          <div ref={cardRef} className="bg-card border border-primary/30 rounded-2xl p-8 glow-primary mb-8">
             <div className="flex items-center justify-center gap-2 mb-6">
               <Package className="h-6 w-6 text-primary" />
               <span className="font-display text-xl font-bold">Random Huge</span>
@@ -56,12 +104,7 @@ const ShopPage = () => {
             <div className="mb-6">
               <p className="text-sm font-semibold mb-3">How many?</p>
               <div className="flex items-center justify-center gap-4 mb-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-12 w-12 rounded-xl"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                >
+                <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
                   <Minus className="h-5 w-5" />
                 </Button>
                 <div className="w-24 text-center">
@@ -74,12 +117,7 @@ const ShopPage = () => {
                     className="w-full text-center text-3xl font-display font-bold bg-transparent border-b-2 border-primary/50 focus:border-primary outline-none"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-12 w-12 rounded-xl"
-                  onClick={() => setQuantity(Math.min(9999, quantity + 1))}
-                >
+                <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => setQuantity(Math.min(9999, quantity + 1))}>
                   <Plus className="h-5 w-5" />
                 </Button>
               </div>
@@ -108,11 +146,7 @@ const ShopPage = () => {
               </div>
             </div>
 
-            <Button
-              size="lg"
-              className="w-full gradient-primary text-primary-foreground glow-primary text-lg h-14"
-              onClick={handleAddToCart}
-            >
+            <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary text-lg h-14" onClick={handleAddToCart}>
               <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart — ${total}
             </Button>
           </div>

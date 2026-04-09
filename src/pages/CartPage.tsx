@@ -28,9 +28,6 @@ const CartPage = () => {
           <div className="md:col-span-2 space-y-4">
             {items.map(item => (
               <div key={item.id} className="flex items-center gap-4 p-4 rounded-lg bg-card border border-border">
-                <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full gradient-primary opacity-40" />
-                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm">{item.name}</p>
                   <span className="text-sm text-muted-foreground">${item.price_usd.toFixed(2)} each</span>
