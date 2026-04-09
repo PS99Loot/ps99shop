@@ -26,14 +26,6 @@ const MOCK_ACTIVITY = [
 ];
 
 const Index = () => {
-  const { data: featured } = useQuery({
-    queryKey: ['featured-products'],
-    queryFn: async () => {
-      const { data } = await supabase.from('products').select('*').eq('active', true).eq('featured', true).limit(4);
-      return data || [];
-    },
-  });
-
   return (
     <Layout>
       {/* Hero */}
