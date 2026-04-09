@@ -62,9 +62,10 @@ const CheckoutPage = () => {
       if (orderError) throw orderError;
 
       // Insert order items
+      const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       const orderItems = items.map(item => ({
         order_id: order.id,
-        product_id: item.id,
+        product_id: isValidUuid(item.id) ? item.id : null,
         product_name_snapshot: item.name,
         unit_price_usd: item.price_usd,
         quantity: item.quantity,
