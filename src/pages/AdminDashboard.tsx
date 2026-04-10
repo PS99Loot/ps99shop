@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Package, ShoppingBag, CreditCard, MessageCircle, Settings, Search, Plus, Edit, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, CreditCard, MessageCircle, Search, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Tables } from '@/integrations/supabase/types';
+import { BRAND } from '@/config/brand';
 
 const ORDER_STATUSES = ['awaiting_payment','payment_detected','confirming','paid','queued_for_delivery','in_delivery','completed','disputed','expired','cancelled','refunded'] as const;
 
@@ -25,7 +25,7 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
-  const { data: products, refetch: refetchProducts } = useQuery({
+  const { data: products } = useQuery({
     queryKey: ['admin-products'],
     queryFn: async () => { const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false }); return data || []; },
     enabled: isAdmin,
@@ -47,7 +47,6 @@ const AdminDashboard = () => {
   });
 
   const totalRevenue = (orders || []).filter(o => ['paid','queued_for_delivery','in_delivery','completed'].includes(o.status)).reduce((s, o) => s + Number(o.total_usd), 0);
-  const paidOrders = (orders || []).filter(o => o.status === 'paid').length;
   const pendingOrders = (orders || []).filter(o => o.status === 'awaiting_payment').length;
   const completedOrders = (orders || []).filter(o => o.status === 'completed').length;
   const lowStock = (products || []).filter(p => p.stock_quantity - p.reserved_quantity <= 2 && p.active);
@@ -61,7 +60,10 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-background">
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <Link to="/"><span className="font-display text-lg font-bold text-gradient">PS99Shop</span></Link>
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/shoplogo.png" alt={BRAND.name} className="h-8 w-8 object-contain" />
+            <span className="font-display text-lg font-bold text-gradient">{BRAND.name}</span>
+          </Link>
           <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded">Admin</span>
         </div>
       </div>
