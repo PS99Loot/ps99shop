@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { getUnitPrice } from '@/config/brand';
 
 export interface CartItem {
   id: string;
@@ -51,7 +52,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = useCallback(() => setItems([]), []);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = items.reduce((sum, i) => sum + i.price_usd * i.quantity, 0);
+  // Use bulk pricing based on total quantity
+  const unitPrice = getUnitPrice(totalItems);
+  const subtotal = totalItems * unitPrice;
 
   return (
     <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, subtotal }}>

@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Minus, Plus, ShoppingCart, Zap, Shield, Package } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCart } from '@/contexts/CartContext';
+import { BRAND, getUnitPrice, getSubtotal } from '@/config/brand';
 
-const PRICE_PER_HUGE = 0.15;
-const QUICK_AMOUNTS = [5, 10, 25, 50, 100];
+const QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250];
 
 const ShopPage = () => {
   const [quantity, setQuantity] = useState(10);
@@ -15,10 +15,12 @@ const ShopPage = () => {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const total = (quantity * PRICE_PER_HUGE).toFixed(2);
+  const unitPrice = getUnitPrice(quantity);
+  const total = getSubtotal(quantity).toFixed(2);
+  const isBulk = quantity >= BRAND.bulkThreshold;
+  const remaining = BRAND.bulkThreshold - quantity;
 
   const handleAddToCart = () => {
-    // Get the card position for animation start
     const card = cardRef.current;
     const cartIcon = document.querySelector('[data-cart-icon]');
 
@@ -39,7 +41,7 @@ const ShopPage = () => {
           id: 'random-huges',
           name: 'Random Huges',
           slug: 'random-huges',
-          price_usd: PRICE_PER_HUGE,
+          price_usd: unitPrice,
           image_url: null,
           stock_quantity: 9999,
         }, quantity);
@@ -50,7 +52,7 @@ const ShopPage = () => {
         id: 'random-huges',
         name: 'Random Huges',
         slug: 'random-huges',
-        price_usd: PRICE_PER_HUGE,
+        price_usd: unitPrice,
         image_url: null,
         stock_quantity: 9999,
       }, quantity);
@@ -60,7 +62,7 @@ const ShopPage = () => {
 
   return (
     <Layout>
-      {/* Flying animation element */}
+      {/* Flying animation */}
       {flyingItem && (
         <div
           className="fixed z-[9999] pointer-events-none"
@@ -89,16 +91,37 @@ const ShopPage = () => {
           </p>
 
           {/* Price Card */}
-          <div ref={cardRef} className="bg-card border border-primary/30 rounded-2xl p-8 glow-primary mb-8">
+          <div ref={cardRef} className="bg-card border border-primary/30 rounded-2xl p-8 glow-primary mb-8 relative overflow-hidden">
+            {/* Bulk discount celebration */}
+            {isBulk && (
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent animate-pulse" />
+              </div>
+            )}
+
             <div className="flex items-center justify-center gap-2 mb-6">
               <Package className="h-6 w-6 text-primary" />
               <span className="font-display text-xl font-bold">Random Huge</span>
             </div>
 
-            <div className="text-5xl font-display font-black text-primary mb-2">
-              $0.15
+            {/* Price display */}
+            <div className="relative">
+              <div className={`text-5xl font-display font-black mb-2 transition-all duration-500 ${isBulk ? 'text-success' : 'text-primary'}`}>
+                ${unitPrice.toFixed(2)}
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">per Huge</p>
+              {isBulk && (
+                <div className="inline-flex items-center gap-1 bg-success/20 text-success px-3 py-1 rounded-full text-sm font-semibold animate-scale-in mb-4">
+                  <Sparkles className="h-4 w-4" />
+                  {BRAND.bulkDiscountPercent}% Bulk Discount Applied!
+                </div>
+              )}
+              {!isBulk && remaining > 0 && (
+                <p className="text-sm text-primary font-medium mb-4">
+                  🔥 {remaining} more for {BRAND.bulkDiscountPercent}% discount ($0.10/each)
+                </p>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground mb-8">per Huge</p>
 
             {/* Quantity Selector */}
             <div className="mb-6">
@@ -129,10 +152,11 @@ const ShopPage = () => {
                     key={amt}
                     variant={quantity === amt ? 'default' : 'outline'}
                     size="sm"
-                    className={quantity === amt ? 'gradient-primary text-primary-foreground' : ''}
+                    className={`${quantity === amt ? 'gradient-primary text-primary-foreground' : ''} ${amt >= BRAND.bulkThreshold ? 'border-success/50 text-success' : ''}`}
                     onClick={() => setQuantity(amt)}
                   >
                     {amt}x
+                    {amt >= BRAND.bulkThreshold && <span className="ml-1 text-xs">💰</span>}
                   </Button>
                 ))}
               </div>
@@ -141,9 +165,14 @@ const ShopPage = () => {
             {/* Total */}
             <div className="border-t border-border pt-6 mb-6">
               <div className="flex justify-between items-center text-lg">
-                <span className="text-muted-foreground">{quantity}x Random Huges</span>
+                <span className="text-muted-foreground">{quantity}x Random Huges @ ${unitPrice.toFixed(2)}</span>
                 <span className="font-display font-bold text-2xl">${total}</span>
               </div>
+              {isBulk && (
+                <p className="text-sm text-success mt-1 text-right">
+                  You save ${(quantity * (BRAND.priceStandard - BRAND.priceBulk)).toFixed(2)}!
+                </p>
+              )}
             </div>
 
             <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary text-lg h-14" onClick={handleAddToCart}>
@@ -170,8 +199,8 @@ const ShopPage = () => {
             <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
               <Package className="h-5 w-5 text-primary flex-shrink-0" />
               <div className="text-left">
-                <p className="text-sm font-semibold">Random Selection</p>
-                <p className="text-xs text-muted-foreground">Get a surprise mix of Huges</p>
+                <p className="text-sm font-semibold">No Order Minimum</p>
+                <p className="text-xs text-muted-foreground">Buy 1 or 1000 — up to you</p>
               </div>
             </div>
           </div>

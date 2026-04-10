@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, Copy, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Copy, Clock, CheckCircle, Sparkles } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,21 +12,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { createPaymentRequest } from '@/services/paymentService';
 import { toast } from 'sonner';
+import { BRAND, getUnitPrice, generateOrderId, generateAccessCode } from '@/config/brand';
 
 const PAYMENT_STATUSES = ['awaiting_payment', 'payment_detected', 'confirming', 'paid'] as const;
 
 const CheckoutPage = () => {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, totalItems } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [robloxUsername, setRobloxUsername] = useState('');
   const [discordUsername, setDiscordUsername] = useState('');
   const [email, setEmail] = useState('');
   const [selectedCrypto, setSelectedCrypto] = useState('');
-  const [orderCreated, setOrderCreated] = useState<{ orderId: string; accessCode: string; payment: ReturnType<typeof createPaymentRequest> } | null>(null);
+  const [orderCreated, setOrderCreated] = useState<{
+    orderId: string;
+    accessCode: string;
+    payment: ReturnType<typeof createPaymentRequest>;
+  } | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string>('awaiting_payment');
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(1800);
+
+  const unitPrice = getUnitPrice(totalItems);
+  const isBulk = totalItems >= BRAND.bulkThreshold;
 
   const { data: cryptos } = useQuery({
     queryKey: ['crypto-settings'],
@@ -41,11 +49,25 @@ const CheckoutPage = () => {
     if (!selectedCrypto) { toast.error('Please select a cryptocurrency'); return; }
     if (items.length === 0) { toast.error('Cart is empty'); return; }
 
+    const cryptoSetting = (cryptos || []).find(c => c.currency_code === selectedCrypto);
+    if (!cryptoSetting?.static_address) { toast.error('Wallet address not configured for this currency'); return; }
+
     setLoading(true);
     try {
-      const payment = createPaymentRequest(subtotal, selectedCrypto);
+      const payment = createPaymentRequest(
+        subtotal,
+        selectedCrypto,
+        cryptoSetting.static_address,
+        cryptoSetting.network_label,
+      );
 
-      const { data: order, error: orderError } = await supabase.from('orders').insert({
+      // Generate IDs client-side so we don't need .select() after insert
+      const publicOrderId = generateOrderId();
+      const accessCode = generateAccessCode();
+
+      const { error: orderError } = await supabase.from('orders').insert({
+        public_order_id: publicOrderId,
+        access_code: accessCode,
         user_id: user?.id || null,
         buyer_roblox_username: robloxUsername.trim(),
         buyer_discord_username: discordUsername.trim() || null,
@@ -57,41 +79,50 @@ const CheckoutPage = () => {
         payment_address: payment.walletAddress,
         payment_expires_at: payment.expiresAt,
         status: 'awaiting_payment',
-      }).select().single();
+      });
 
       if (orderError) throw orderError;
 
-      // Insert order items
-      const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: isValidUuid(item.id) ? item.id : null,
-        product_name_snapshot: item.name,
-        unit_price_usd: item.price_usd,
-        quantity: item.quantity,
-        total_price_usd: item.price_usd * item.quantity,
-      }));
-      await supabase.from('order_items').insert(orderItems);
-
-      // Insert payment record
-      await supabase.from('payments').insert({
-        order_id: order.id,
-        currency: selectedCrypto,
-        network: payment.network || null,
-        expected_amount: payment.expectedAmount,
-        wallet_address: payment.walletAddress,
-        expires_at: payment.expiresAt,
-        status: 'pending',
+      // We need the order uuid for child tables — look it up via public_order_id
+      const { data: orderRow } = await supabase.rpc('lookup_order', {
+        p_order_id: publicOrderId,
+        p_access_code: accessCode,
       });
 
-      // Insert order event
-      await supabase.from('order_events').insert({
-        order_id: order.id,
-        event_type: 'order_created',
-        event_message: 'Order created, awaiting payment',
-      });
+      const orderId = orderRow?.[0]?.id;
 
-      setOrderCreated({ orderId: order.public_order_id, accessCode: order.access_code, payment });
+      if (orderId) {
+        // Insert order items
+        const orderItems = items.map(item => ({
+          order_id: orderId,
+          product_id: null,
+          product_name_snapshot: item.name,
+          unit_price_usd: unitPrice,
+          quantity: item.quantity,
+          total_price_usd: unitPrice * item.quantity,
+        }));
+        await supabase.from('order_items').insert(orderItems);
+
+        // Insert payment record
+        await supabase.from('payments').insert({
+          order_id: orderId,
+          currency: selectedCrypto,
+          network: payment.network || null,
+          expected_amount: payment.expectedAmount,
+          wallet_address: payment.walletAddress,
+          expires_at: payment.expiresAt,
+          status: 'pending',
+        });
+
+        // Insert order event
+        await supabase.from('order_events').insert({
+          order_id: orderId,
+          event_type: 'order_created',
+          event_message: 'Order created, awaiting payment',
+        });
+      }
+
+      setOrderCreated({ orderId: publicOrderId, accessCode, payment });
       clearCart();
       toast.success('Order created! Send payment to the address below.');
 
@@ -109,9 +140,9 @@ const CheckoutPage = () => {
     }
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label?: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+    toast.success(`${label || 'Text'} copied to clipboard`);
   };
 
   const formatTime = (seconds: number) => {
@@ -137,14 +168,31 @@ const CheckoutPage = () => {
         <div className="container mx-auto px-4 py-10 max-w-2xl">
           <h1 className="font-display text-2xl font-bold mb-6 text-center">Complete Your Payment</h1>
 
-          {/* Order ID */}
-          <div className="bg-card border border-border rounded-lg p-4 mb-6 text-center">
-            <p className="text-sm text-muted-foreground">Order ID</p>
-            <p className="font-display text-xl font-bold text-primary">{orderCreated.orderId}</p>
-            <p className="text-xs text-muted-foreground mt-1">Save this ID and your access code to track your order</p>
-            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(orderCreated.accessCode)} className="mt-2 text-xs">
-              Copy Access Code <Copy className="ml-1 h-3 w-3" />
-            </Button>
+          {/* Order Info */}
+          <div className="bg-card border border-border rounded-lg p-4 mb-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Order ID</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-display text-lg font-bold text-primary">{orderCreated.orderId}</p>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(orderCreated.orderId, 'Order ID')}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Access Code</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-mono text-sm font-bold">{orderCreated.accessCode}</p>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(orderCreated.accessCode, 'Access code')}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              ⚠️ Save your Order ID and Access Code — you'll need them to track your order and chat with support.
+            </p>
           </div>
 
           {/* Payment Card */}
@@ -158,7 +206,7 @@ const CheckoutPage = () => {
               <p className="text-sm text-muted-foreground mb-1">Amount to Send</p>
               <div className="flex items-center gap-2">
                 <code className="text-xl font-mono font-bold">{orderCreated.payment.expectedAmount}</code>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(orderCreated.payment.expectedAmount)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(orderCreated.payment.expectedAmount, 'Amount')}>
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
@@ -168,15 +216,10 @@ const CheckoutPage = () => {
               <p className="text-sm text-muted-foreground mb-1">Send to Address</p>
               <div className="flex items-center gap-2">
                 <code className="text-sm font-mono break-all bg-muted p-2 rounded flex-1">{orderCreated.payment.walletAddress}</code>
-                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => copyToClipboard(orderCreated.payment.walletAddress)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => copyToClipboard(orderCreated.payment.walletAddress, 'Wallet address')}>
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-
-            {/* QR Placeholder */}
-            <div className="w-40 h-40 mx-auto bg-muted rounded-lg flex items-center justify-center border border-border">
-              <span className="text-xs text-muted-foreground">QR Code</span>
             </div>
 
             {/* Timer */}
@@ -187,7 +230,7 @@ const CheckoutPage = () => {
             </div>
           </div>
 
-          {/* Warnings */}
+          {/* Instructions */}
           <div className="mt-6 space-y-2">
             <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
               <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
@@ -196,6 +239,10 @@ const CheckoutPage = () => {
             <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
               <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
               <span>Only send on the <strong>correct network</strong>. Wrong network may result in lost funds.</span>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
+              <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <span>Once payment is confirmed, an order chat will open so we can deliver your Huges in Roblox.</span>
             </div>
           </div>
 
@@ -246,7 +293,7 @@ const CheckoutPage = () => {
                 <Input value={discordUsername} onChange={e => setDiscordUsername(e.target.value)} placeholder="username#0000" className="bg-muted" />
               </div>
               <div>
-                <Label>Email <span className="text-muted-foreground">(optional)</span></Label>
+                <Label>Email <span className="text-muted-foreground">(optional, for order confirmation)</span></Label>
                 <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="For order updates" className="bg-muted" />
               </div>
             </div>
@@ -272,9 +319,18 @@ const CheckoutPage = () => {
               {items.map(item => (
                 <div key={item.id} className="flex justify-between text-sm">
                   <span>{item.quantity}x {item.name}</span>
-                  <span>${(item.price_usd * item.quantity).toFixed(2)}</span>
+                  <span>${(unitPrice * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
+              <div className="text-xs text-muted-foreground">
+                {totalItems} huges @ ${unitPrice.toFixed(2)} each
+              </div>
+              {isBulk && (
+                <div className="flex items-center gap-1 text-sm text-success font-medium">
+                  <Sparkles className="h-4 w-4" />
+                  {BRAND.bulkDiscountPercent}% bulk discount applied!
+                </div>
+              )}
               <div className="border-t border-border pt-3 flex justify-between font-bold">
                 <span>Total</span><span>${subtotal.toFixed(2)}</span>
               </div>

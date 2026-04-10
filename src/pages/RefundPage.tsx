@@ -1,4 +1,5 @@
 import Layout from '@/components/layout/Layout';
+import { BRAND } from '@/config/brand';
 
 const RefundPage = () => (
   <Layout>
@@ -6,7 +7,7 @@ const RefundPage = () => (
       <h1 className="font-display text-3xl font-bold mb-8">Refund Policy</h1>
 
       <h2 className="font-display text-xl font-bold mt-8 mb-4">Eligibility</h2>
-      <p className="text-muted-foreground text-sm">Refunds may be issued when PS99Shop is unable to deliver the purchased virtual items, or if there is a confirmed error on our part. Each refund request is reviewed individually.</p>
+      <p className="text-muted-foreground text-sm">Refunds may be issued when {BRAND.name} is unable to deliver the purchased virtual items, or if there is a confirmed error on our part. Each refund request is reviewed individually.</p>
 
       <h2 className="font-display text-xl font-bold mt-8 mb-4">How to Request a Refund</h2>
       <p className="text-muted-foreground text-sm">To request a refund, open a dispute through your order chat. Provide your order ID and a description of the issue. Our team will review your case and respond within 24 hours.</p>
