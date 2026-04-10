@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom';
+import { BRAND } from '@/config/brand';
 
 const Footer = () => (
   <footer className="border-t border-border bg-card mt-20">
     <div className="container mx-auto px-4 py-12">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
         <div>
-          <h3 className="font-display text-lg font-bold text-gradient mb-4">PS99Shop</h3>
+          <h3 className="font-display text-lg font-bold text-gradient mb-4">{BRAND.name}</h3>
           <p className="text-sm text-muted-foreground">The cheapest Pet Simulator 99 Huges delivered fast. Crypto only. Manual safe delivery.</p>
         </div>
         <div>
           <h4 className="font-semibold mb-3 text-sm">Shop</h4>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <Link to="/shop" className="block hover:text-foreground transition-colors">All Huges</Link>
+            <Link to="/shop" className="block hover:text-foreground transition-colors">Buy Huges</Link>
             <Link to="/cart" className="block hover:text-foreground transition-colors">Cart</Link>
           </div>
         </div>
@@ -31,7 +32,7 @@ const Footer = () => (
         </div>
       </div>
       <div className="mt-10 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} PS99Shop. All rights reserved. Not affiliated with Roblox or Pet Simulator 99.
+        © {new Date().getFullYear()} {BRAND.name}. All rights reserved. Not affiliated with Roblox or Pet Simulator 99.
       </div>
     </div>
   </footer>

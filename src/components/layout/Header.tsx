@@ -3,6 +3,7 @@ import { ShoppingCart, Menu, X, User, LogOut, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { BRAND } from '@/config/brand';
 import { useState } from 'react';
 
 const Header = () => {
@@ -20,8 +21,13 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 glass">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="font-display text-xl font-bold text-gradient">PS99Shop</span>
+        <Link to="/" className="flex items-center gap-2 group">
+          <img
+            src="/shoplogo.png"
+            alt={`${BRAND.name} logo`}
+            className="h-8 w-8 md:h-10 md:w-10 object-contain transition-transform duration-200 group-hover:scale-110"
+          />
+          <span className="font-display text-xl font-bold text-gradient">{BRAND.name}</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
