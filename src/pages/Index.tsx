@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Search, Shield, Zap, MessageCircle, Bitcoin, CheckCircle, Tag } from 'lucide-react';
+import { ShoppingCart, Search, Shield, Zap, MessageCircle, Bitcoin, Tag } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { BRAND } from '@/config/brand';
 
@@ -19,20 +19,6 @@ const STEPS = [
   { num: '04', title: 'Get Delivery', desc: 'Join chat and receive your items in Roblox' },
 ];
 
-const RECENT_DELIVERIES = [
-  { user: 'R***x_Player', count: 13, minutesAgo: 2 },
-  { user: 'G***r_2024', count: 7, minutesAgo: 5 },
-  { user: 'P***t_King', count: 25, minutesAgo: 12 },
-  { user: 'S***r_Pro99', count: 4, minutesAgo: 18 },
-  { user: 'B***y_Master', count: 150, minutesAgo: 25 },
-  { user: 'L***t_Fan42', count: 50, minutesAgo: 33 },
-];
-
-function timeAgo(minutes: number): string {
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
-}
 
 const Index = () => {
   return (
@@ -120,23 +106,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Recent Deliveries */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="font-display text-2xl font-bold text-center mb-8">Recent Deliveries</h2>
-          <div className="max-w-lg mx-auto space-y-3">
-            {RECENT_DELIVERIES.map((a, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-card border border-border">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-4 w-4 text-success" />
-                  <span className="text-sm"><span className="text-muted-foreground">{a.user}</span> received <span className="font-semibold">{a.count}x Random Huges</span></span>
-                </div>
-                <span className="text-xs text-muted-foreground">{timeAgo(a.minutesAgo)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </Layout>
   );
 };
