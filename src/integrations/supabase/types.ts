@@ -203,8 +203,12 @@ export type Database = {
           estimated_wait_minutes: number | null
           expected_crypto_amount: string | null
           id: string
+          oxapay_payment_url: string | null
+          oxapay_track_id: string | null
+          paid_at: string | null
           payment_address: string | null
           payment_expires_at: string | null
+          payment_payload: Json | null
           public_order_id: string
           queue_position: number | null
           selected_crypto: string | null
@@ -224,8 +228,12 @@ export type Database = {
           estimated_wait_minutes?: number | null
           expected_crypto_amount?: string | null
           id?: string
+          oxapay_payment_url?: string | null
+          oxapay_track_id?: string | null
+          paid_at?: string | null
           payment_address?: string | null
           payment_expires_at?: string | null
+          payment_payload?: Json | null
           public_order_id?: string
           queue_position?: number | null
           selected_crypto?: string | null
@@ -245,8 +253,12 @@ export type Database = {
           estimated_wait_minutes?: number | null
           expected_crypto_amount?: string | null
           id?: string
+          oxapay_payment_url?: string | null
+          oxapay_track_id?: string | null
+          paid_at?: string | null
           payment_address?: string | null
           payment_expires_at?: string | null
+          payment_payload?: Json | null
           public_order_id?: string
           queue_position?: number | null
           selected_crypto?: string | null
@@ -448,8 +460,12 @@ export type Database = {
           estimated_wait_minutes: number | null
           expected_crypto_amount: string | null
           id: string
+          oxapay_payment_url: string | null
+          oxapay_track_id: string | null
+          paid_at: string | null
           payment_address: string | null
           payment_expires_at: string | null
+          payment_payload: Json | null
           public_order_id: string
           queue_position: number | null
           selected_crypto: string | null
