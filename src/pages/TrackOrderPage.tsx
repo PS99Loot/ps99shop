@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import StatusBadge from '@/components/store/StatusBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { Search, MessageCircle } from 'lucide-react';
+import { Search, MessageCircle, Lock } from 'lucide-react';
 
 const ORDER_TIMELINE = [
   'awaiting_payment', 'payment_detected', 'confirming', 'paid',
@@ -26,13 +26,22 @@ const TrackOrderPage = () => {
     queryKey: ['track-order', orderId, accessCode],
     queryFn: async () => {
       if (!orderId) return null;
-      // Try RPC lookup for guest
       const { data } = await supabase.rpc('lookup_order', { p_order_id: orderId, p_access_code: accessCode });
       if (data && data.length > 0) return data[0];
       return null;
     },
     enabled: false,
   });
+
+  // Poll every 5 seconds when order is in a payment-pending state
+  useEffect(() => {
+    if (!order) return;
+    const pendingStatuses = ['awaiting_payment', 'payment_detected', 'confirming'];
+    if (!pendingStatuses.includes(order.status)) return;
+
+    const interval = setInterval(() => refetch(), 5000);
+    return () => clearInterval(interval);
+  }, [order?.status, refetch]);
 
   const { data: orderItems } = useQuery({
     queryKey: ['track-order-items', order?.id],
@@ -61,8 +70,8 @@ const TrackOrderPage = () => {
 
   const currentStep = order ? ORDER_TIMELINE.indexOf(order.status) : -1;
   const chatAllowed = order && ['paid', 'queued_for_delivery', 'in_delivery', 'completed'].includes(order.status);
+  const canPay = order && order.status === 'awaiting_payment' && order.oxapay_payment_url;
 
-  // Also show user's orders if logged in
   const { data: myOrders } = useQuery({
     queryKey: ['my-orders', user?.id],
     queryFn: async () => {
@@ -123,10 +132,20 @@ const TrackOrderPage = () => {
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Roblox</span><span>{order.buyer_roblox_username}</span></div>
                 {order.buyer_discord_username && <div className="flex justify-between"><span className="text-muted-foreground">Discord</span><span>{order.buyer_discord_username}</span></div>}
-                <div className="flex justify-between"><span className="text-muted-foreground">Crypto</span><span>{order.selected_crypto}</span></div>
+                {order.selected_crypto && <div className="flex justify-between"><span className="text-muted-foreground">Crypto</span><span>{order.selected_crypto}</span></div>}
                 <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span>${Number(order.total_usd).toFixed(2)}</span></div>
                 {order.queue_position && <div className="flex justify-between"><span className="text-muted-foreground">Queue Position</span><span>#{order.queue_position}</span></div>}
               </div>
+
+              {/* Pay button if awaiting */}
+              {canPay && (
+                <Button
+                  className="w-full mt-4 gradient-primary text-primary-foreground"
+                  onClick={() => window.location.href = order.oxapay_payment_url!}
+                >
+                  <Lock className="mr-2 h-4 w-4" /> Complete Payment
+                </Button>
+              )}
             </div>
 
             {/* Items */}
@@ -170,7 +189,6 @@ const TrackOrderPage = () => {
           </div>
         )}
 
-        {/* User's orders */}
         {user && myOrders && myOrders.length > 0 && (
           <div className="mt-12">
             <h2 className="font-display text-xl font-bold mb-4">Your Orders</h2>
