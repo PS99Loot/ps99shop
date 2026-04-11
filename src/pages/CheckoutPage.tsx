@@ -3,18 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, Copy, Clock, CheckCircle, Sparkles } from 'lucide-react';
+import { Copy, Shield, Lock, Sparkles, ExternalLink } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import { createPaymentRequest } from '@/services/paymentService';
 import { toast } from 'sonner';
 import { BRAND, getUnitPrice, generateOrderId, generateAccessCode } from '@/config/brand';
-
-const PAYMENT_STATUSES = ['awaiting_payment', 'payment_detected', 'confirming', 'paid'] as const;
 
 const CheckoutPage = () => {
   const { items, subtotal, clearCart, totalItems } = useCart();
@@ -23,45 +18,27 @@ const CheckoutPage = () => {
   const [robloxUsername, setRobloxUsername] = useState('');
   const [discordUsername, setDiscordUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [selectedCrypto, setSelectedCrypto] = useState('');
   const [orderCreated, setOrderCreated] = useState<{
     orderId: string;
     accessCode: string;
-    payment: ReturnType<typeof createPaymentRequest>;
   } | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<string>('awaiting_payment');
   const [loading, setLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(1800);
+  const [redirecting, setRedirecting] = useState(false);
 
   const unitPrice = getUnitPrice(totalItems);
   const isBulk = totalItems >= BRAND.bulkThreshold;
 
-  const { data: cryptos } = useQuery({
-    queryKey: ['crypto-settings'],
-    queryFn: async () => {
-      const { data } = await supabase.from('crypto_settings').select('*').eq('enabled', true);
-      return data || [];
-    },
-  });
+  const copyToClipboard = (text: string, label?: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label || 'Text'} copied to clipboard`);
+  };
 
   const handleCreateOrder = async () => {
     if (!robloxUsername.trim()) { toast.error('Roblox username is required'); return; }
-    if (!selectedCrypto) { toast.error('Please select a cryptocurrency'); return; }
     if (items.length === 0) { toast.error('Cart is empty'); return; }
-
-    const cryptoSetting = (cryptos || []).find(c => c.currency_code === selectedCrypto);
-    if (!cryptoSetting?.static_address) { toast.error('Wallet address not configured for this currency'); return; }
 
     setLoading(true);
     try {
-      const payment = createPaymentRequest(
-        subtotal,
-        selectedCrypto,
-        cryptoSetting.static_address,
-        cryptoSetting.network_label,
-      );
-
-      // Generate IDs client-side so we don't need .select() after insert
       const publicOrderId = generateOrderId();
       const accessCode = generateAccessCode();
 
@@ -74,25 +51,19 @@ const CheckoutPage = () => {
         buyer_email: email.trim() || null,
         subtotal_usd: subtotal,
         total_usd: subtotal,
-        selected_crypto: selectedCrypto,
-        expected_crypto_amount: payment.expectedAmount,
-        payment_address: payment.walletAddress,
-        payment_expires_at: payment.expiresAt,
         status: 'awaiting_payment',
       });
 
       if (orderError) throw orderError;
 
-      // We need the order uuid for child tables — look it up via public_order_id
+      // Look up order to get UUID for child tables
       const { data: orderRow } = await supabase.rpc('lookup_order', {
         p_order_id: publicOrderId,
         p_access_code: accessCode,
       });
 
       const orderId = orderRow?.[0]?.id;
-
       if (orderId) {
-        // Insert order items
         const orderItems = items.map(item => ({
           order_id: orderId,
           product_id: null,
@@ -103,54 +74,40 @@ const CheckoutPage = () => {
         }));
         await supabase.from('order_items').insert(orderItems);
 
-        // Insert payment record
-        await supabase.from('payments').insert({
-          order_id: orderId,
-          currency: selectedCrypto,
-          network: payment.network || null,
-          expected_amount: payment.expectedAmount,
-          wallet_address: payment.walletAddress,
-          expires_at: payment.expiresAt,
-          status: 'pending',
-        });
-
-        // Insert order event
         await supabase.from('order_events').insert({
           order_id: orderId,
           event_type: 'order_created',
-          event_message: 'Order created, awaiting payment',
+          event_message: 'Order created, proceeding to payment',
         });
       }
 
-      setOrderCreated({ orderId: publicOrderId, accessCode, payment });
+      setOrderCreated({ orderId: publicOrderId, accessCode });
       clearCart();
-      toast.success('Order created! Send payment to the address below.');
+      toast.success('Order created! Redirecting to payment...');
 
-      // Start countdown
-      const interval = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 0) { clearInterval(interval); return 0; }
-          return prev - 1;
-        });
-      }, 1000);
+      // Now create OxaPay invoice and redirect
+      setRedirecting(true);
+      const { data: invoiceData, error: invoiceError } = await supabase.functions.invoke(
+        'oxapay-create-invoice',
+        { body: { orderId: publicOrderId, accessCode } }
+      );
+
+      if (invoiceError || !invoiceData?.payment_url) {
+        toast.error('Payment setup failed. You can pay later from order tracking.');
+        setRedirecting(false);
+        return;
+      }
+
+      // Redirect to OxaPay payment page
+      window.location.href = invoiceData.payment_url;
     } catch (err: any) {
       toast.error(err.message || 'Failed to create order');
-    } finally {
       setLoading(false);
+      setRedirecting(false);
     }
   };
 
-  const copyToClipboard = (text: string, label?: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label || 'Text'} copied to clipboard`);
-  };
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
+  // Empty cart and no order yet
   if (items.length === 0 && !orderCreated) {
     return (
       <Layout>
@@ -162,14 +119,16 @@ const CheckoutPage = () => {
     );
   }
 
+  // Order created — show confirmation with credentials
   if (orderCreated) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-10 max-w-2xl">
-          <h1 className="font-display text-2xl font-bold mb-6 text-center">Complete Your Payment</h1>
+          <h1 className="font-display text-2xl font-bold mb-6 text-center">
+            {redirecting ? 'Redirecting to Payment...' : 'Order Created'}
+          </h1>
 
-          {/* Order Info */}
-          <div className="bg-card border border-border rounded-lg p-4 mb-6">
+          <div className="bg-card border border-border rounded-lg p-6 mb-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Order ID</p>
@@ -195,87 +154,57 @@ const CheckoutPage = () => {
             </p>
           </div>
 
-          {/* Payment Card */}
-          <div className="bg-card border border-primary/30 rounded-lg p-6 glow-primary space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="font-display font-bold text-lg">{orderCreated.payment.currency}</span>
-              {orderCreated.payment.network && <span className="text-xs bg-muted px-2 py-1 rounded">{orderCreated.payment.network}</span>}
+          {redirecting && (
+            <div className="text-center space-y-4">
+              <div className="animate-pulse text-primary font-semibold">
+                <ExternalLink className="h-5 w-5 inline mr-2" />
+                Opening secure payment page...
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Choose your preferred cryptocurrency on the payment page.
+              </p>
             </div>
+          )}
 
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Amount to Send</p>
-              <div className="flex items-center gap-2">
-                <code className="text-xl font-mono font-bold">{orderCreated.payment.expectedAmount}</code>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(orderCreated.payment.expectedAmount, 'Amount')}>
-                  <Copy className="h-4 w-4" />
+          {!redirecting && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                If you weren't redirected, click below to complete payment.
+              </p>
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => navigate(`/track?order=${orderCreated.orderId}`)}
+                >
+                  Track Order
+                </Button>
+                <Button
+                  className="flex-1 gradient-primary text-primary-foreground"
+                  onClick={async () => {
+                    setRedirecting(true);
+                    const { data } = await supabase.functions.invoke('oxapay-create-invoice', {
+                      body: { orderId: orderCreated.orderId, accessCode: orderCreated.accessCode },
+                    });
+                    if (data?.payment_url) {
+                      window.location.href = data.payment_url;
+                    } else {
+                      toast.error('Could not get payment link');
+                      setRedirecting(false);
+                    }
+                  }}
+                >
+                  <Lock className="mr-2 h-4 w-4" /> Pay Now
                 </Button>
               </div>
             </div>
-
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Send to Address</p>
-              <div className="flex items-center gap-2">
-                <code className="text-sm font-mono break-all bg-muted p-2 rounded flex-1">{orderCreated.payment.walletAddress}</code>
-                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => copyToClipboard(orderCreated.payment.walletAddress, 'Wallet address')}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Timer */}
-            <div className="flex items-center justify-center gap-2 text-warning">
-              <Clock className="h-4 w-4" />
-              <span className="font-mono text-lg">{formatTime(timeLeft)}</span>
-              <span className="text-sm">remaining</span>
-            </div>
-          </div>
-
-          {/* Instructions */}
-          <div className="mt-6 space-y-2">
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
-              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-              <span>Send the <strong>exact amount</strong> shown above. Incorrect amounts may delay your order.</span>
-            </div>
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
-              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-              <span>Only send on the <strong>correct network</strong>. Wrong network may result in lost funds.</span>
-            </div>
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
-              <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              <span>Once payment is confirmed, an order chat will open so we can deliver your Huges in Roblox.</span>
-            </div>
-          </div>
-
-          {/* Status */}
-          <div className="mt-6 bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-muted-foreground mb-3">Payment Status</p>
-            <div className="flex items-center gap-3">
-              {PAYMENT_STATUSES.map((s, i) => (
-                <div key={s} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${PAYMENT_STATUSES.indexOf(paymentStatus as any) >= i ? 'gradient-primary' : 'bg-muted'}`} />
-                  {i < PAYMENT_STATUSES.length - 1 && <div className={`w-8 h-0.5 ${PAYMENT_STATUSES.indexOf(paymentStatus as any) > i ? 'gradient-primary' : 'bg-muted'}`} />}
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2 capitalize">{paymentStatus.replace(/_/g, ' ')}</p>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 flex gap-4">
-            <Button variant="outline" className="flex-1" onClick={() => navigate(`/track?order=${orderCreated.orderId}`)}>
-              Track This Order
-            </Button>
-            {paymentStatus === 'paid' && (
-              <Button className="flex-1 gradient-primary text-primary-foreground" onClick={() => navigate(`/chat/${orderCreated.orderId}`)}>
-                Open Order Chat
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </Layout>
     );
   }
 
+  // Main checkout form
   return (
     <Layout>
       <div className="container mx-auto px-4 py-10 max-w-3xl">
@@ -293,23 +222,23 @@ const CheckoutPage = () => {
                 <Input value={discordUsername} onChange={e => setDiscordUsername(e.target.value)} placeholder="username#0000" className="bg-muted" />
               </div>
               <div>
-                <Label>Email <span className="text-muted-foreground">(optional, for order confirmation)</span></Label>
+                <Label>Email <span className="text-muted-foreground">(optional, for order updates)</span></Label>
                 <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="For order updates" className="bg-muted" />
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-              <h2 className="font-display text-lg font-bold">Select Cryptocurrency</h2>
-              <Select value={selectedCrypto} onValueChange={setSelectedCrypto}>
-                <SelectTrigger className="bg-muted"><SelectValue placeholder="Choose crypto..." /></SelectTrigger>
-                <SelectContent>
-                  {(cryptos || []).map(c => (
-                    <SelectItem key={c.currency_code} value={c.currency_code}>
-                      {c.display_name} ({c.currency_code}){c.network_label ? ` - ${c.network_label}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Payment info */}
+            <div className="bg-card border border-border rounded-lg p-6 space-y-3">
+              <h2 className="font-display text-lg font-bold flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" /> Secure Crypto Payment
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                After placing your order, you'll be redirected to a secure payment page where you can choose your preferred cryptocurrency (BTC, ETH, LTC, USDT, and more).
+              </p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                Powered by OxaPay — safe and fast crypto payments
+              </div>
             </div>
           </div>
 
@@ -334,9 +263,17 @@ const CheckoutPage = () => {
               <div className="border-t border-border pt-3 flex justify-between font-bold">
                 <span>Total</span><span>${subtotal.toFixed(2)}</span>
               </div>
-              <Button className="w-full gradient-primary text-primary-foreground glow-primary" size="lg" onClick={handleCreateOrder} disabled={loading}>
-                {loading ? 'Creating Order...' : 'Place Order'}
+              <Button
+                className="w-full gradient-primary text-primary-foreground glow-primary"
+                size="lg"
+                onClick={handleCreateOrder}
+                disabled={loading || redirecting}
+              >
+                {loading ? 'Creating Order...' : redirecting ? 'Redirecting...' : 'Continue to Secure Payment'}
               </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                You'll choose your crypto on the next page
+              </p>
             </div>
           </div>
         </div>
