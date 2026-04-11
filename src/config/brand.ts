@@ -2,7 +2,8 @@
 export const BRAND = {
   name: 'PS99Loot',
   tagline: 'The cheapest Pet Simulator 99 Huges',
-  domain: 'ps99loot.lovable.app',
+  domain: 'ps99loot.com',
+  siteUrl: 'https://ps99loot.com',
   supportEmail: 'support@ps99loot.com',
   priceStandard: 0.15,
   priceBulk: 0.10,
