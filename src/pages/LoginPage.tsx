@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { sendWelcomeEmail } from '@/services/emailService';
 
 const LoginPage = () => {
   const { signIn, signUp } = useAuth();
@@ -21,6 +22,7 @@ const LoginPage = () => {
     try {
       if (isSignUp) {
         await signUp(email, password);
+        sendWelcomeEmail(email);
         toast.success('Account created! You can now sign in.');
       } else {
         await signIn(email, password);

@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { BRAND, getUnitPrice, generateOrderId, generateAccessCode } from '@/config/brand';
+import { sendOrderConfirmationEmail } from '@/services/emailService';
 
 const CheckoutPage = () => {
   const { items, subtotal, clearCart, totalItems } = useCart();
@@ -83,6 +84,18 @@ const CheckoutPage = () => {
 
       setOrderCreated({ orderId: publicOrderId, accessCode });
       clearCart();
+
+      // Send order confirmation email if email provided
+      const recipientEmail = email.trim() || user?.email;
+      if (recipientEmail) {
+        sendOrderConfirmationEmail(recipientEmail, {
+          orderId: publicOrderId,
+          accessCode,
+          quantity: totalItems,
+          totalUsd: subtotal.toFixed(2),
+        });
+      }
+
       toast.success('Order created! Redirecting to payment...');
 
       // Now create OxaPay invoice and redirect
