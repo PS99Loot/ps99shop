@@ -1,4 +1,7 @@
-import { corsHeaders } from '@supabase/supabase-js/cors'
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY') || ''
 const SENDER = { name: 'PS99Loot', email: 'noreply@ps99loot.com' }
