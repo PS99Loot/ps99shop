@@ -21,7 +21,7 @@ const LoginPage = () => {
     try {
       if (isSignUp) {
         await signUp(email, password);
-        toast.success('Account created! Check your email for verification.');
+        toast.success('Account created! You can now sign in.');
       } else {
         await signIn(email, password);
         toast.success('Logged in successfully');
