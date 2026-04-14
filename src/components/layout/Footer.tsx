@@ -21,6 +21,7 @@ const Footer = () => (
           <div className="space-y-2 text-sm text-muted-foreground">
             <Link to="/track" className="block hover:text-foreground transition-colors">Track Order</Link>
             <Link to="/faq" className="block hover:text-foreground transition-colors">FAQ</Link>
+            <Link to="/admin/login" className="block hover:text-foreground transition-colors">Admin Login</Link>
           </div>
         </div>
         <div>
