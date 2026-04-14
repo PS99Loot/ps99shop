@@ -213,6 +213,23 @@ const ShopPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Individual Products */}
+          {products && products.length > 0 && (
+            <div className="mt-12">
+              <h2 className="font-display text-2xl font-bold mb-6">Individual Products</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {products.map((p) => (
+                  <Link key={p.id} to={`/product/${p.slug}`} className="bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors text-center">
+                    <div className="w-16 h-16 rounded-full gradient-primary opacity-30 mx-auto mb-3" />
+                    <h3 className="font-semibold text-sm mb-1">{p.name}</h3>
+                    <p className="text-primary font-bold">{Number(p.price_usd) === 0 ? 'FREE' : `$${Number(p.price_usd).toFixed(2)}`}</p>
+                    {p.badge && <span className="text-xs text-muted-foreground">{p.badge}</span>}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
