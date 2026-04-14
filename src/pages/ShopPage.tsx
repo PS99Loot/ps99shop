@@ -17,7 +17,13 @@ const ShopPage = () => {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const unitPrice = getUnitPrice(quantity);
+  const { data: products } = useQuery({
+    queryKey: ['shop-products'],
+    queryFn: async () => {
+      const { data } = await supabase.from('products').select('*').eq('active', true).order('price_usd', { ascending: true });
+      return data ?? [];
+    },
+  });
   const total = getSubtotal(quantity).toFixed(2);
   const isBulk = quantity >= BRAND.bulkThreshold;
   const remaining = BRAND.bulkThreshold - quantity;
