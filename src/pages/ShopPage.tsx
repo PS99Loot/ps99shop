@@ -24,6 +24,7 @@ const ShopPage = () => {
       return data ?? [];
     },
   });
+  const unitPrice = getUnitPrice(quantity);
   const total = getSubtotal(quantity).toFixed(2);
   const isBulk = quantity >= BRAND.bulkThreshold;
   const remaining = BRAND.bulkThreshold - quantity;
