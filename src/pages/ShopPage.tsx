@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
 import { BRAND, getUnitPrice, getSubtotal } from '@/config/brand';
 
