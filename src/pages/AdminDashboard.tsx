@@ -1,44 +1,56 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
 import StatusBadge from '@/components/store/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Package, ShoppingBag, CreditCard, MessageCircle, Search, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, CreditCard, MessageCircle, Search, AlertTriangle, DollarSign, TrendingUp, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { BRAND } from '@/config/brand';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const ORDER_STATUSES = ['awaiting_payment','payment_detected','confirming','paid','queued_for_delivery','in_delivery','completed','disputed','expired','cancelled','refunded'] as const;
+const PAID_STATUSES = ['paid','queued_for_delivery','in_delivery','completed'];
+
+function isAdminAuthenticated(): boolean {
+  const token = sessionStorage.getItem('admin_token');
+  const expiry = sessionStorage.getItem('admin_expiry');
+  if (!token || !expiry) return false;
+  return Date.now() < Number(expiry);
+}
 
 const AdminDashboard = () => {
-  const { isAdmin, loading } = useAuth();
   const [orderFilter, setOrderFilter] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
 
+  if (!isAdminAuthenticated()) return <Navigate to="/admin/login" replace />;
+
   const { data: orders, refetch: refetchOrders } = useQuery({
     queryKey: ['admin-orders'],
-    queryFn: async () => { const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false }); return data || []; },
-    enabled: isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      return data || [];
+    },
   });
 
   const { data: products } = useQuery({
     queryKey: ['admin-products'],
-    queryFn: async () => { const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false }); return data || []; },
-    enabled: isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      return data || [];
+    },
   });
 
   const { data: payments } = useQuery({
     queryKey: ['admin-payments'],
-    queryFn: async () => { const { data } = await supabase.from('payments').select('*').order('created_at', { ascending: false }); return data || []; },
-    enabled: isAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
+      return data || [];
+    },
   });
-
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
-  if (!isAdmin) return <Navigate to="/" replace />;
 
   const filteredOrders = (orders || []).filter(o => {
     if (orderFilter !== 'all' && o.status !== orderFilter) return false;
@@ -46,14 +58,33 @@ const AdminDashboard = () => {
     return true;
   });
 
-  const totalRevenue = (orders || []).filter(o => ['paid','queued_for_delivery','in_delivery','completed'].includes(o.status)).reduce((s, o) => s + Number(o.total_usd), 0);
+  const paidOrders = (orders || []).filter(o => PAID_STATUSES.includes(o.status));
+  const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total_usd), 0);
   const pendingOrders = (orders || []).filter(o => o.status === 'awaiting_payment').length;
   const completedOrders = (orders || []).filter(o => o.status === 'completed').length;
   const lowStock = (products || []).filter(p => p.stock_quantity - p.reserved_quantity <= 2 && p.active);
 
+  const earningsData = useMemo(() => {
+    if (!orders) return [];
+    const byDay: Record<string, number> = {};
+    paidOrders.forEach(o => {
+      const day = new Date(o.created_at).toISOString().slice(0, 10);
+      byDay[day] = (byDay[day] || 0) + Number(o.total_usd);
+    });
+    return Object.entries(byDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, amount]) => ({ date, amount: Number(amount.toFixed(2)) }));
+  }, [orders]);
+
   const updateOrderStatus = async (orderId: string, status: string) => {
     const { error } = await supabase.from('orders').update({ status: status as any }).eq('id', orderId);
     if (error) toast.error(error.message); else { toast.success('Status updated'); refetchOrders(); }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin_token');
+    sessionStorage.removeItem('admin_expiry');
+    window.location.href = '/admin/login';
   };
 
   return (
@@ -66,6 +97,9 @@ const AdminDashboard = () => {
           </Link>
           <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded">Admin</span>
         </div>
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
+          <LogOut className="h-4 w-4 mr-1" /> Logout
+        </Button>
       </div>
 
       <div className="p-4 md:p-6">
@@ -80,17 +114,39 @@ const AdminDashboard = () => {
           <TabsContent value="overview">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
-                { label: 'Total Orders', value: orders?.length || 0 },
-                { label: 'Revenue', value: `$${totalRevenue.toFixed(2)}` },
-                { label: 'Pending', value: pendingOrders },
-                { label: 'Completed', value: completedOrders },
+                { label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign },
+                { label: 'Total Orders', value: orders?.length || 0, icon: ShoppingBag },
+                { label: 'Pending', value: pendingOrders, icon: AlertTriangle },
+                { label: 'Completed', value: completedOrders, icon: TrendingUp },
               ].map(s => (
                 <div key={s.label} className="bg-card border border-border rounded-lg p-4">
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <s.icon className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">{s.label}</p>
+                  </div>
                   <p className="text-2xl font-bold mt-1">{s.value}</p>
                 </div>
               ))}
             </div>
+
+            {earningsData.length > 0 && (
+              <div className="bg-card border border-border rounded-lg p-4 mb-6">
+                <h3 className="text-sm font-semibold mb-4">Earnings Over Time</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={earningsData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, color: 'hsl(var(--foreground))' }}
+                      formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
+                    />
+                    <Line type="monotone" dataKey="amount" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             {lowStock.length > 0 && (
               <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 mb-6">
                 <div className="flex items-center gap-2 mb-2"><AlertTriangle className="h-4 w-4 text-warning" /><span className="font-semibold text-sm">Low Stock Alerts</span></div>
