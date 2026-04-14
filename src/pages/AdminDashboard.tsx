@@ -25,8 +25,7 @@ function isAdminAuthenticated(): boolean {
 const AdminDashboard = () => {
   const [orderFilter, setOrderFilter] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
-
-  if (!isAdminAuthenticated()) return <Navigate to="/admin/login" replace />;
+  const authenticated = isAdminAuthenticated();
 
   const { data: orders, refetch: refetchOrders } = useQuery({
     queryKey: ['admin-orders'],
@@ -34,6 +33,7 @@ const AdminDashboard = () => {
       const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
       return data || [];
     },
+    enabled: authenticated,
   });
 
   const { data: products } = useQuery({
@@ -42,6 +42,7 @@ const AdminDashboard = () => {
       const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       return data || [];
     },
+    enabled: authenticated,
   });
 
   const { data: payments } = useQuery({
@@ -50,22 +51,13 @@ const AdminDashboard = () => {
       const { data } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
       return data || [];
     },
+    enabled: authenticated,
   });
 
-  const filteredOrders = (orders || []).filter(o => {
-    if (orderFilter !== 'all' && o.status !== orderFilter) return false;
-    if (orderSearch && !o.public_order_id.toLowerCase().includes(orderSearch.toLowerCase()) && !o.buyer_roblox_username.toLowerCase().includes(orderSearch.toLowerCase())) return false;
-    return true;
-  });
-
-  const paidOrders = (orders || []).filter(o => PAID_STATUSES.includes(o.status));
-  const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total_usd), 0);
-  const pendingOrders = (orders || []).filter(o => o.status === 'awaiting_payment').length;
-  const completedOrders = (orders || []).filter(o => o.status === 'completed').length;
-  const lowStock = (products || []).filter(p => p.stock_quantity - p.reserved_quantity <= 2 && p.active);
+  const paidOrders = useMemo(() => (orders || []).filter(o => PAID_STATUSES.includes(o.status)), [orders]);
+  const totalRevenue = useMemo(() => paidOrders.reduce((s, o) => s + Number(o.total_usd), 0), [paidOrders]);
 
   const earningsData = useMemo(() => {
-    if (!orders) return [];
     const byDay: Record<string, number> = {};
     paidOrders.forEach(o => {
       const day = new Date(o.created_at).toISOString().slice(0, 10);
@@ -74,7 +66,19 @@ const AdminDashboard = () => {
     return Object.entries(byDay)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, amount]) => ({ date, amount: Number(amount.toFixed(2)) }));
-  }, [orders]);
+  }, [paidOrders]);
+
+  if (!authenticated) return <Navigate to="/admin/login" replace />;
+
+  const filteredOrders = (orders || []).filter(o => {
+    if (orderFilter !== 'all' && o.status !== orderFilter) return false;
+    if (orderSearch && !o.public_order_id.toLowerCase().includes(orderSearch.toLowerCase()) && !o.buyer_roblox_username.toLowerCase().includes(orderSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  const pendingOrders = (orders || []).filter(o => o.status === 'awaiting_payment').length;
+  const completedOrders = (orders || []).filter(o => o.status === 'completed').length;
+  const lowStock = (products || []).filter(p => p.stock_quantity - p.reserved_quantity <= 2 && p.active);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     const { error } = await supabase.from('orders').update({ status: status as any }).eq('id', orderId);
