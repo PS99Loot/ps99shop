@@ -72,7 +72,7 @@ const ProductPage = () => {
                 disabled={!inStock}
                 className="gradient-primary text-primary-foreground flex-1 glow-primary"
                 onClick={() => {
-                  addItem({ id: product.id, name: product.name, slug: product.slug, price_usd: Number(product.price_usd), image_url: product.image_url, stock_quantity: available }, qty);
+                  addItem({ id: product.id, name: product.name, slug: product.slug, product_type: (product as any).product_type || 'random_huge_bundle', price_usd: Number(product.price_usd), image_url: product.image_url, stock_quantity: available }, qty);
                   toast.success(`Added ${qty}x ${product.name} to cart`);
                 }}
               >

@@ -50,6 +50,7 @@ const ProductCard = ({ product }: { product: Tables<'products'> }) => {
               id: product.id,
               name: product.name,
               slug: product.slug,
+              product_type: (product as any).product_type || 'random_huge_bundle',
               price_usd: Number(product.price_usd),
               image_url: product.image_url,
               stock_quantity: product.stock_quantity - product.reserved_quantity,
