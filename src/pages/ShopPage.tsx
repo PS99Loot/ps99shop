@@ -1,191 +1,225 @@
 import { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles, Star } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
-import { BRAND, getUnitPrice, getSubtotal } from '@/config/brand';
+import { BRAND, getHugeUnitPrice, getHugeSubtotal, type ProductType } from '@/config/brand';
 
-const QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250];
+const HUGE_QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250];
 
 const ShopPage = () => {
-  const [quantity, setQuantity] = useState(10);
-  const [flyingItem, setFlyingItem] = useState<{ x: number; y: number; targetX: number; targetY: number } | null>(null);
+  const [hugeQty, setHugeQty] = useState(10);
+  const [titanicQty, setTitanicQty] = useState(1);
   const { addItem } = useCart();
   const navigate = useNavigate();
-  const cardRef = useRef<HTMLDivElement>(null);
 
   const { data: products } = useQuery({
     queryKey: ['shop-products'],
     queryFn: async () => {
-      const { data } = await supabase.from('products').select('*').eq('active', true).order('price_usd', { ascending: true });
+      const { data } = await supabase.from('products').select('*').eq('active', true);
       return data ?? [];
     },
   });
-  const unitPrice = getUnitPrice(quantity);
-  const total = getSubtotal(quantity).toFixed(2);
-  const isBulk = quantity >= BRAND.bulkThreshold;
-  const remaining = BRAND.bulkThreshold - quantity;
 
-  const handleAddToCart = () => {
-    const card = cardRef.current;
-    const cartIcon = document.querySelector('[data-cart-icon]');
+  const freeProduct = products?.find(p => (p as any).product_type === 'free_test_product');
+  const hugeProduct = products?.find(p => (p as any).product_type === 'random_huge_bundle');
+  const titanicProduct = products?.find(p => (p as any).product_type === 'random_titanic_bundle');
 
-    if (card && cartIcon) {
-      const cardRect = card.getBoundingClientRect();
-      const cartRect = cartIcon.getBoundingClientRect();
+  const hugeUnitPrice = getHugeUnitPrice(hugeQty);
+  const hugeTotal = getHugeSubtotal(hugeQty).toFixed(2);
+  const isBulk = hugeQty >= BRAND.bulkThreshold;
+  const remaining = BRAND.bulkThreshold - hugeQty;
 
-      setFlyingItem({
-        x: cardRect.left + cardRect.width / 2,
-        y: cardRect.top + cardRect.height / 3,
-        targetX: cartRect.left + cartRect.width / 2,
-        targetY: cartRect.top + cartRect.height / 2,
-      });
+  const titanicUnitPrice = BRAND.titanicPrice;
+  const titanicTotal = (titanicQty * titanicUnitPrice).toFixed(2);
 
-      setTimeout(() => {
-        setFlyingItem(null);
-        addItem({
-          id: 'random-huges',
-          name: 'Random Huges',
-          slug: 'random-huges',
-          price_usd: unitPrice,
-          image_url: null,
-          stock_quantity: 9999,
-        }, quantity);
-        navigate('/cart');
-      }, 600);
-    } else {
-      addItem({
-        id: 'random-huges',
-        name: 'Random Huges',
-        slug: 'random-huges',
-        price_usd: unitPrice,
-        image_url: null,
-        stock_quantity: 9999,
-      }, quantity);
-      navigate('/cart');
-    }
+  const handleAddHuges = () => {
+    addItem({
+      id: hugeProduct?.id || 'random-huges',
+      name: 'Random Huges',
+      slug: 'random-huges',
+      product_type: 'random_huge_bundle',
+      price_usd: hugeUnitPrice,
+      image_url: null,
+      stock_quantity: 9999,
+    }, hugeQty);
+    navigate('/cart');
+  };
+
+  const handleAddTitanic = () => {
+    addItem({
+      id: titanicProduct?.id || 'random-titanic-pet',
+      name: 'Random Titanic Pet',
+      slug: 'random-titanic-pet',
+      product_type: 'random_titanic_bundle',
+      price_usd: titanicUnitPrice,
+      image_url: null,
+      stock_quantity: 9999,
+    }, titanicQty);
+    navigate('/cart');
+  };
+
+  const handleAddFree = () => {
+    addItem({
+      id: freeProduct?.id || 'free-test-product',
+      name: 'Free Test Product',
+      slug: 'free-test-product',
+      product_type: 'free_test_product',
+      price_usd: 0,
+      image_url: null,
+      stock_quantity: 9999,
+    }, 1);
+    navigate('/cart');
   };
 
   return (
     <Layout>
-      {/* Flying animation */}
-      {flyingItem && (
-        <div
-          className="fixed z-[9999] pointer-events-none"
-          style={{
-            left: flyingItem.x,
-            top: flyingItem.y,
-            animation: 'flyToCart 0.6s ease-in forwards',
-            '--target-x': `${flyingItem.targetX - flyingItem.x}px`,
-            '--target-y': `${flyingItem.targetY - flyingItem.y}px`,
-          } as React.CSSProperties}
-        >
-          <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center shadow-lg shadow-primary/50">
-            <Package className="h-6 w-6 text-primary-foreground" />
-          </div>
-        </div>
-      )}
-
       <div className="container mx-auto px-4 py-10">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="font-display text-4xl md:text-5xl font-black mb-4">
-            Buy Random Huges
-          </h1>
-          <p className="text-muted-foreground text-lg mb-10">
-            Each Huge is randomly selected from our inventory and delivered manually in Roblox.
-            You don't choose which Huge you get — that's part of the fun!
-          </p>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h1 className="font-display text-4xl md:text-5xl font-black mb-4">PS99Loot Shop</h1>
+            <p className="text-muted-foreground text-lg">
+              Buy Random Huges, Titanic Pets, and more — delivered manually in Roblox.
+            </p>
+          </div>
 
-          {/* Price Card */}
-          <div ref={cardRef} className="bg-card border border-primary/30 rounded-2xl p-8 glow-primary mb-8 relative overflow-hidden">
-            {/* Bulk discount celebration */}
-            {isBulk && (
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent animate-pulse" />
-              </div>
-            )}
-
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <Package className="h-6 w-6 text-primary" />
-              <span className="font-display text-xl font-bold">Random Huge</span>
-            </div>
-
-            {/* Price display */}
-            <div className="relative">
-              <div className={`text-5xl font-display font-black mb-2 transition-all duration-500 ${isBulk ? 'text-success' : 'text-primary'}`}>
-                ${unitPrice.toFixed(2)}
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">per Huge</p>
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            {/* ── Random Huges Card ── */}
+            <div className="bg-card border border-primary/30 rounded-2xl p-6 glow-primary relative overflow-hidden">
               {isBulk && (
-                <div className="inline-flex items-center gap-1 bg-success/20 text-success px-3 py-1 rounded-full text-sm font-semibold animate-scale-in mb-4">
-                  <Sparkles className="h-4 w-4" />
-                  {BRAND.bulkDiscountPercent}% Bulk Discount Applied!
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent animate-pulse" />
                 </div>
               )}
-              {!isBulk && remaining > 0 && (
-                <p className="text-sm text-primary font-medium mb-4">
-                  🔥 {remaining} more for {BRAND.bulkDiscountPercent}% discount ($0.10/each)
-                </p>
-              )}
-            </div>
 
-            {/* Quantity Selector */}
-            <div className="mb-6">
-              <p className="text-sm font-semibold mb-3">How many?</p>
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
-                  <Minus className="h-5 w-5" />
-                </Button>
-                <div className="w-24 text-center">
-                  <input
-                    type="number"
-                    min={1}
-                    max={9999}
-                    value={quantity}
-                    onChange={e => setQuantity(Math.max(1, Math.min(9999, parseInt(e.target.value) || 1)))}
-                    className="w-full text-center text-3xl font-display font-bold bg-transparent border-b-2 border-primary/50 focus:border-primary outline-none"
-                  />
-                </div>
-                <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => setQuantity(Math.min(9999, quantity + 1))}>
-                  <Plus className="h-5 w-5" />
-                </Button>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Package className="h-6 w-6 text-primary" />
+                <span className="font-display text-xl font-bold">Random Huges</span>
               </div>
 
-              {/* Quick amounts */}
-              <div className="flex flex-wrap justify-center gap-2">
-                {QUICK_AMOUNTS.map(amt => (
-                  <Button
-                    key={amt}
-                    variant={quantity === amt ? 'default' : 'outline'}
-                    size="sm"
-                    className={`${quantity === amt ? 'gradient-primary text-primary-foreground' : ''} ${amt >= BRAND.bulkThreshold ? 'border-success/50 text-success' : ''}`}
-                    onClick={() => setQuantity(amt)}
-                  >
-                    {amt}x
-                    {amt >= BRAND.bulkThreshold && <span className="ml-1 text-xs">💰</span>}
+              <div className="text-center">
+                <div className={`text-4xl font-display font-black mb-1 transition-all duration-500 ${isBulk ? 'text-success' : 'text-primary'}`}>
+                  ${hugeUnitPrice.toFixed(2)}
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">per Huge</p>
+                {isBulk && (
+                  <div className="inline-flex items-center gap-1 bg-success/20 text-success px-3 py-1 rounded-full text-sm font-semibold animate-scale-in mb-3">
+                    <Sparkles className="h-4 w-4" />
+                    {BRAND.bulkDiscountPercent}% Bulk Discount!
+                  </div>
+                )}
+                {!isBulk && remaining > 0 && (
+                  <p className="text-sm text-primary font-medium mb-3">
+                    🔥 {remaining} more for {BRAND.bulkDiscountPercent}% discount
+                  </p>
+                )}
+              </div>
+
+              {/* Quantity */}
+              <div className="mb-4">
+                <p className="text-sm font-semibold mb-2 text-center">How many?</p>
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setHugeQty(Math.max(1, hugeQty - 1))}>
+                    <Minus className="h-4 w-4" />
                   </Button>
-                ))}
+                  <input
+                    type="number" min={1} max={9999} value={hugeQty}
+                    onChange={e => setHugeQty(Math.max(1, Math.min(9999, parseInt(e.target.value) || 1)))}
+                    className="w-20 text-center text-2xl font-display font-bold bg-transparent border-b-2 border-primary/50 focus:border-primary outline-none"
+                  />
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setHugeQty(Math.min(9999, hugeQty + 1))}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {HUGE_QUICK_AMOUNTS.map(amt => (
+                    <Button key={amt} variant={hugeQty === amt ? 'default' : 'outline'} size="sm"
+                      className={`${hugeQty === amt ? 'gradient-primary text-primary-foreground' : ''} ${amt >= BRAND.bulkThreshold ? 'border-success/50 text-success' : ''}`}
+                      onClick={() => setHugeQty(amt)}
+                    >
+                      {amt}x{amt >= BRAND.bulkThreshold && <span className="ml-1 text-xs">💰</span>}
+                    </Button>
+                  ))}
+                </div>
               </div>
+
+              <div className="border-t border-border pt-4 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">{hugeQty}× {hugeQty === 1 ? 'Random Huge' : 'Random Huges'}</span>
+                  <span className="font-display font-bold text-xl">${hugeTotal}</span>
+                </div>
+                {isBulk && (
+                  <p className="text-xs text-success mt-1 text-right">
+                    You save ${(hugeQty * (BRAND.priceStandard - BRAND.priceBulk)).toFixed(2)}!
+                  </p>
+                )}
+              </div>
+
+              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddHuges}>
+                <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart — ${hugeTotal}
+              </Button>
             </div>
 
-            {/* Total */}
-            <div className="border-t border-border pt-6 mb-6">
-              <div className="flex justify-between items-center text-lg">
-                <span className="text-muted-foreground">{quantity}x Random Huges @ ${unitPrice.toFixed(2)}</span>
-                <span className="font-display font-bold text-2xl">${total}</span>
+            {/* ── Random Titanic Pet Card ── */}
+            <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Star className="h-6 w-6 text-primary" />
+                <span className="font-display text-xl font-bold">Random Titanic Pet</span>
               </div>
-              {isBulk && (
-                <p className="text-sm text-success mt-1 text-right">
-                  You save ${(quantity * (BRAND.priceStandard - BRAND.priceBulk)).toFixed(2)}!
-                </p>
-              )}
-            </div>
 
-            <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary text-lg h-14" onClick={handleAddToCart}>
-              <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart — ${total}
+              <div className="text-center">
+                <div className="text-4xl font-display font-black text-primary mb-1">
+                  ${titanicUnitPrice.toFixed(2)}
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">per Titanic Pet</p>
+              </div>
+
+              {/* Quantity */}
+              <div className="mb-4">
+                <p className="text-sm font-semibold mb-2 text-center">How many?</p>
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setTitanicQty(Math.max(1, titanicQty - 1))}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <input
+                    type="number" min={1} max={9999} value={titanicQty}
+                    onChange={e => setTitanicQty(Math.max(1, Math.min(9999, parseInt(e.target.value) || 1)))}
+                    className="w-20 text-center text-2xl font-display font-bold bg-transparent border-b-2 border-primary/50 focus:border-primary outline-none"
+                  />
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setTitanicQty(Math.min(9999, titanicQty + 1))}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">{titanicQty}× {titanicQty === 1 ? 'Random Titanic Pet' : 'Random Titanic Pets'}</span>
+                  <span className="font-display font-bold text-xl">${titanicTotal}</span>
+                </div>
+              </div>
+
+              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddTitanic}>
+                <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart — ${titanicTotal}
+              </Button>
+            </div>
+          </div>
+
+          {/* ── Free Test Product ── */}
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-md mx-auto mb-10">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Package className="h-5 w-5 text-muted-foreground" />
+              <span className="font-display text-lg font-bold">Free Test Product</span>
+              <span className="bg-success/20 text-success text-xs px-2 py-0.5 rounded-full font-semibold">FREE</span>
+            </div>
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              Test the checkout and order chat flow — no payment required.
+            </p>
+            <Button variant="outline" className="w-full" onClick={handleAddFree}>
+              <ShoppingCart className="mr-2 h-4 w-4" /> Add Free Test Product
             </Button>
           </div>
 
@@ -202,7 +236,7 @@ const ShopPage = () => {
               <Shield className="h-5 w-5 text-primary flex-shrink-0" />
               <div className="text-left">
                 <p className="text-sm font-semibold">100% Legit</p>
-                <p className="text-xs text-muted-foreground">All Huges are legitimate items</p>
+                <p className="text-xs text-muted-foreground">All items are legitimate</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
@@ -213,23 +247,6 @@ const ShopPage = () => {
               </div>
             </div>
           </div>
-
-          {/* Individual Products */}
-          {products && products.length > 0 && (
-            <div className="mt-12">
-              <h2 className="font-display text-2xl font-bold mb-6">Individual Products</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {products.map((p) => (
-                  <Link key={p.id} to={`/product/${p.slug}`} className="bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors text-center">
-                    <div className="w-16 h-16 rounded-full gradient-primary opacity-30 mx-auto mb-3" />
-                    <h3 className="font-semibold text-sm mb-1">{p.name}</h3>
-                    <p className="text-primary font-bold">{Number(p.price_usd) === 0 ? 'FREE' : `$${Number(p.price_usd).toFixed(2)}`}</p>
-                    {p.badge && <span className="text-xs text-muted-foreground">{p.badge}</span>}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </Layout>

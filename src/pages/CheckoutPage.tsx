@@ -3,17 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Copy, Shield, Lock, Sparkles, ExternalLink } from 'lucide-react';
+import { Copy, Shield, Lock, ExternalLink } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { BRAND, getUnitPrice, generateOrderId, generateAccessCode } from '@/config/brand';
+import { formatLineItem, generateOrderId, generateAccessCode } from '@/config/brand';
 import { sendOrderConfirmationEmail } from '@/services/emailService';
 
 const CheckoutPage = () => {
-  const { items, subtotal, clearCart, totalItems } = useCart();
+  const { items, subtotal, clearCart, getLineUnitPrice, getLineSubtotal } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [robloxUsername, setRobloxUsername] = useState('');
@@ -25,9 +25,6 @@ const CheckoutPage = () => {
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-
-  const unitPrice = getUnitPrice(totalItems);
-  const isBulk = totalItems >= BRAND.bulkThreshold;
 
   const copyToClipboard = (text: string, label?: string) => {
     navigator.clipboard.writeText(text);
@@ -57,7 +54,6 @@ const CheckoutPage = () => {
 
       if (orderError) throw orderError;
 
-      // Look up order to get UUID for child tables
       const { data: orderRow } = await supabase.rpc('lookup_order', {
         p_order_id: publicOrderId,
         p_access_code: accessCode,
@@ -69,9 +65,10 @@ const CheckoutPage = () => {
           order_id: orderId,
           product_id: null,
           product_name_snapshot: item.name,
-          unit_price_usd: unitPrice,
+          product_type_snapshot: item.product_type,
+          unit_price_usd: getLineUnitPrice(item),
           quantity: item.quantity,
-          total_price_usd: unitPrice * item.quantity,
+          total_price_usd: getLineSubtotal(item),
         }));
         await supabase.from('order_items').insert(orderItems);
 
@@ -85,20 +82,26 @@ const CheckoutPage = () => {
       setOrderCreated({ orderId: publicOrderId, accessCode });
       clearCart();
 
-      // Send order confirmation email if email provided
+      // Send email
       const recipientEmail = email.trim() || user?.email;
       if (recipientEmail) {
+        const itemsSummary = items.map(i => formatLineItem(i.name, i.quantity)).join(', ');
         sendOrderConfirmationEmail(recipientEmail, {
           orderId: publicOrderId,
           accessCode,
-          quantity: totalItems,
+          itemsSummary,
           totalUsd: subtotal.toFixed(2),
         });
       }
 
       toast.success('Order created! Redirecting to payment...');
 
-      // Now create OxaPay invoice and redirect
+      // Skip payment for free orders
+      if (subtotal === 0) {
+        setRedirecting(false);
+        return;
+      }
+
       setRedirecting(true);
       const { data: invoiceData, error: invoiceError } = await supabase.functions.invoke(
         'oxapay-create-invoice',
@@ -111,7 +114,6 @@ const CheckoutPage = () => {
         return;
       }
 
-      // Redirect to OxaPay payment page
       window.location.href = invoiceData.payment_url;
     } catch (err: any) {
       toast.error(err.message || 'Failed to create order');
@@ -120,7 +122,6 @@ const CheckoutPage = () => {
     }
   };
 
-  // Empty cart and no order yet
   if (items.length === 0 && !orderCreated) {
     return (
       <Layout>
@@ -132,7 +133,6 @@ const CheckoutPage = () => {
     );
   }
 
-  // Order created — show confirmation with credentials
   if (orderCreated) {
     return (
       <Layout>
@@ -140,7 +140,6 @@ const CheckoutPage = () => {
           <h1 className="font-display text-2xl font-bold mb-6 text-center">
             {redirecting ? 'Redirecting to Payment...' : 'Order Created'}
           </h1>
-
           <div className="bg-card border border-border rounded-lg p-6 mb-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -173,42 +172,39 @@ const CheckoutPage = () => {
                 <ExternalLink className="h-5 w-5 inline mr-2" />
                 Opening secure payment page...
               </div>
-              <p className="text-sm text-muted-foreground">
-                Choose your preferred cryptocurrency on the payment page.
-              </p>
+              <p className="text-sm text-muted-foreground">Choose your preferred cryptocurrency on the payment page.</p>
             </div>
           )}
 
           {!redirecting && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                If you weren't redirected, click below to complete payment.
+                {subtotal === 0
+                  ? 'This is a free order — no payment needed!'
+                  : "If you weren't redirected, click below to complete payment."}
               </p>
               <div className="flex gap-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => navigate(`/track?order=${orderCreated.orderId}`)}
-                >
+                <Button variant="outline" className="flex-1" onClick={() => navigate(`/track?order=${orderCreated.orderId}`)}>
                   Track Order
                 </Button>
-                <Button
-                  className="flex-1 gradient-primary text-primary-foreground"
-                  onClick={async () => {
-                    setRedirecting(true);
-                    const { data } = await supabase.functions.invoke('oxapay-create-invoice', {
-                      body: { orderId: orderCreated.orderId, accessCode: orderCreated.accessCode },
-                    });
-                    if (data?.payment_url) {
-                      window.location.href = data.payment_url;
-                    } else {
-                      toast.error('Could not get payment link');
-                      setRedirecting(false);
-                    }
-                  }}
-                >
-                  <Lock className="mr-2 h-4 w-4" /> Pay Now
-                </Button>
+                {subtotal > 0 && (
+                  <Button className="flex-1 gradient-primary text-primary-foreground"
+                    onClick={async () => {
+                      setRedirecting(true);
+                      const { data } = await supabase.functions.invoke('oxapay-create-invoice', {
+                        body: { orderId: orderCreated.orderId, accessCode: orderCreated.accessCode },
+                      });
+                      if (data?.payment_url) {
+                        window.location.href = data.payment_url;
+                      } else {
+                        toast.error('Could not get payment link');
+                        setRedirecting(false);
+                      }
+                    }}
+                  >
+                    <Lock className="mr-2 h-4 w-4" /> Pay Now
+                  </Button>
+                )}
               </div>
             </div>
           )}
@@ -240,13 +236,12 @@ const CheckoutPage = () => {
               </div>
             </div>
 
-            {/* Payment info */}
             <div className="bg-card border border-border rounded-lg p-6 space-y-3">
               <h2 className="font-display text-lg font-bold flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" /> Secure Crypto Payment
               </h2>
               <p className="text-sm text-muted-foreground">
-                After placing your order, you'll be redirected to a secure payment page where you can choose your preferred cryptocurrency (BTC, ETH, LTC, USDT, and more).
+                After placing your order, you'll be redirected to a secure payment page where you can choose your preferred cryptocurrency.
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="h-3 w-3" />
@@ -258,35 +253,29 @@ const CheckoutPage = () => {
           <div className="md:col-span-2">
             <div className="bg-card border border-border rounded-lg p-6 space-y-4 sticky top-20">
               <h2 className="font-display text-lg font-bold">Order Summary</h2>
-              {items.map(item => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span>{item.quantity}x {item.name}</span>
-                  <span>${(unitPrice * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="text-xs text-muted-foreground">
-                {totalItems} huges @ ${unitPrice.toFixed(2)} each
-              </div>
-              {isBulk && (
-                <div className="flex items-center gap-1 text-sm text-success font-medium">
-                  <Sparkles className="h-4 w-4" />
-                  {BRAND.bulkDiscountPercent}% bulk discount applied!
-                </div>
-              )}
+              {items.map(item => {
+                const unitPrice = getLineUnitPrice(item);
+                const lineTotal = getLineSubtotal(item);
+                return (
+                  <div key={item.id} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>{formatLineItem(item.name, item.quantity)}</span>
+                      <span>${lineTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground pl-2">@ ${unitPrice.toFixed(2)} each</div>
+                  </div>
+                );
+              })}
               <div className="border-t border-border pt-3 flex justify-between font-bold">
                 <span>Total</span><span>${subtotal.toFixed(2)}</span>
               </div>
               <Button
-                className="w-full gradient-primary text-primary-foreground glow-primary"
-                size="lg"
-                onClick={handleCreateOrder}
-                disabled={loading || redirecting}
+                className="w-full gradient-primary text-primary-foreground glow-primary" size="lg"
+                onClick={handleCreateOrder} disabled={loading || redirecting}
               >
-                {loading ? 'Creating Order...' : redirecting ? 'Redirecting...' : 'Continue to Secure Payment'}
+                {loading ? 'Creating Order...' : redirecting ? 'Redirecting...' : subtotal === 0 ? 'Place Free Order' : 'Continue to Secure Payment'}
               </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                You'll choose your crypto on the next page
-              </p>
+              {subtotal > 0 && <p className="text-xs text-center text-muted-foreground">You'll choose your crypto on the next page</p>}
             </div>
           </div>
         </div>

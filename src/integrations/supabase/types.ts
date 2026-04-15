@@ -153,6 +153,7 @@ export type Database = {
           order_id: string
           product_id: string | null
           product_name_snapshot: string
+          product_type_snapshot: string | null
           quantity: number
           total_price_usd: number
           unit_price_usd: number
@@ -162,6 +163,7 @@ export type Database = {
           order_id: string
           product_id?: string | null
           product_name_snapshot: string
+          product_type_snapshot?: string | null
           quantity?: number
           total_price_usd: number
           unit_price_usd: number
@@ -171,6 +173,7 @@ export type Database = {
           order_id?: string
           product_id?: string | null
           product_name_snapshot?: string
+          product_type_snapshot?: string | null
           quantity?: number
           total_price_usd?: number
           unit_price_usd?: number
@@ -345,6 +348,7 @@ export type Database = {
           image_url: string | null
           name: string
           price_usd: number
+          product_type: string | null
           reserved_quantity: number
           slug: string
           stock_quantity: number
@@ -362,6 +366,7 @@ export type Database = {
           image_url?: string | null
           name: string
           price_usd: number
+          product_type?: string | null
           reserved_quantity?: number
           slug: string
           stock_quantity?: number
@@ -379,6 +384,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           price_usd?: number
+          product_type?: string | null
           reserved_quantity?: number
           slug?: string
           stock_quantity?: number

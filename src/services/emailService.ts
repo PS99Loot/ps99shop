@@ -18,7 +18,7 @@ export async function sendOrderConfirmationEmail(
   data: {
     orderId: string;
     accessCode: string;
-    quantity: number;
+    itemsSummary: string;
     totalUsd: string;
   }
 ) {
@@ -30,7 +30,7 @@ export async function sendOrderConfirmationEmail(
         data: {
           ORDER_ID: data.orderId,
           ACCESS_CODE: data.accessCode,
-          QUANTITY: String(data.quantity),
+          ITEMS_SUMMARY: data.itemsSummary,
           TOTAL_USD: data.totalUsd,
         },
       },

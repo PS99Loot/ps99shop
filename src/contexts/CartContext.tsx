@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { getUnitPrice } from '@/config/brand';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { getProductUnitPrice, type ProductType } from '@/config/brand';
 
 export interface CartItem {
   id: string;
   name: string;
   slug: string;
+  product_type: ProductType;
   price_usd: number;
   image_url: string | null;
   quantity: number;
@@ -19,6 +20,8 @@ interface CartContextType {
   clearCart: () => void;
   totalItems: number;
   subtotal: number;
+  getLineSubtotal: (item: CartItem) => number;
+  getLineUnitPrice: (item: CartItem) => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -51,13 +54,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearCart = useCallback(() => setItems([]), []);
 
+  const getLineUnitPrice = useCallback((item: CartItem): number => {
+    return getProductUnitPrice(item.product_type, item.quantity);
+  }, []);
+
+  const getLineSubtotal = useCallback((item: CartItem): number => {
+    return getProductUnitPrice(item.product_type, item.quantity) * item.quantity;
+  }, []);
+
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  // Use bulk pricing based on total quantity
-  const unitPrice = getUnitPrice(totalItems);
-  const subtotal = totalItems * unitPrice;
+  
+  const subtotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + getLineSubtotal(item), 0);
+  }, [items, getLineSubtotal]);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, subtotal }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, subtotal, getLineSubtotal, getLineUnitPrice }}>
       {children}
     </CartContext.Provider>
   );
