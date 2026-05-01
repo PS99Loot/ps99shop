@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatLineItem, generateOrderId, generateAccessCode } from '@/config/brand';
 import { sendOrderConfirmationEmail } from '@/services/emailService';
+import SupportCTA from '@/components/store/SupportCTA';
 
 const CheckoutPage = () => {
   const { items, subtotal, clearCart, getLineUnitPrice, getLineSubtotal } = useCart();
