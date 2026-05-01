@@ -163,9 +163,11 @@ const CheckoutPage = () => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3">
-              ⚠️ Save your Order ID and Access Code — you'll need them to track your order and chat with support.
+              ⚠️ Save your Order ID and Access Code — you'll need them to track your order and reference it when contacting support.
             </p>
           </div>
+
+          {!redirecting && <SupportCTA orderId={orderCreated.orderId} className="mb-6" />}
 
           {redirecting && (
             <div className="text-center space-y-4">
