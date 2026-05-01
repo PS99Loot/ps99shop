@@ -87,6 +87,14 @@ Deno.serve(async (req) => {
       console.error("Failed to update order:", updateError);
     }
 
+    // Increment promo usage when order transitions to paid
+    if ((updateData.status === "paid") && order.status !== "paid" && (order as any).promo_code_id) {
+      const { error: promoErr } = await supabase.rpc("increment_promo_usage", {
+        p_promo_id: (order as any).promo_code_id,
+      });
+      if (promoErr) console.error("Failed to increment promo usage:", promoErr);
+    }
+
     // Log event
     await supabase.from("order_events").insert({
       order_id: order.id,
