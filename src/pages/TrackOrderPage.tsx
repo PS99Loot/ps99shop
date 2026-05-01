@@ -8,7 +8,8 @@ import StatusBadge from '@/components/store/StatusBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { Search, MessageCircle, Lock } from 'lucide-react';
+import { Search, Lock } from 'lucide-react';
+import SupportCTA from '@/components/store/SupportCTA';
 
 const ORDER_TIMELINE = [
   'awaiting_payment', 'payment_detected', 'confirming', 'paid',
