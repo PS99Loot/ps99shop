@@ -10,7 +10,7 @@ const RefundPage = () => (
       <p className="text-muted-foreground text-sm">Refunds may be issued when {BRAND.name} is unable to deliver the purchased virtual items, or if there is a confirmed error on our part. Each refund request is reviewed individually.</p>
 
       <h2 className="font-display text-xl font-bold mt-8 mb-4">How to Request a Refund</h2>
-      <p className="text-muted-foreground text-sm">To request a refund, open a dispute through your order chat. Provide your order ID and a description of the issue. Our team will review your case and respond within 24 hours.</p>
+      <p className="text-muted-foreground text-sm">To request a refund, contact support via the chat in the bottom right of the site and include your Order ID and a description of the issue. Our team will review your case and respond within 24 hours.</p>
 
       <h2 className="font-display text-xl font-bold mt-8 mb-4">Refund Method</h2>
       <p className="text-muted-foreground text-sm">Due to the nature of cryptocurrency transactions, refunds may be processed in the original cryptocurrency or an equivalent value in another supported currency. Refund amounts are calculated at the exchange rate at the time of the refund, not the original purchase.</p>
