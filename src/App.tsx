@@ -12,7 +12,6 @@ import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import TrackOrderPage from "./pages/TrackOrderPage";
-import OrderChatPage from "./pages/OrderChatPage";
 import FaqPage from "./pages/FaqPage";
 import TermsPage from "./pages/TermsPage";
 import RefundPage from "./pages/RefundPage";
