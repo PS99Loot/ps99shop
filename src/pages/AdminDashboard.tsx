@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Package, ShoppingBag, CreditCard, MessageCircle, Search, AlertTriangle, DollarSign, TrendingUp, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, CreditCard, Search, AlertTriangle, DollarSign, TrendingUp, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { BRAND } from '@/config/brand';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
