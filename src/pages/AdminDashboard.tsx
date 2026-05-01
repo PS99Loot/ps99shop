@@ -254,6 +254,10 @@ const AdminDashboard = () => {
               {(payments || []).length === 0 && <p className="p-8 text-center text-muted-foreground text-sm">No payments found</p>}
             </div>
           </TabsContent>
+
+          <TabsContent value="promos">
+            <PromoCodesManager />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
