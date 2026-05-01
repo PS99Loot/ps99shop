@@ -176,14 +176,17 @@ const AdminDashboard = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="p-3">Order</th><th className="p-3">Roblox</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Date</th><th className="p-3">Actions</th>
+                    <th className="p-3">Order</th><th className="p-3">Roblox</th><th className="p-3">Subtotal</th><th className="p-3">Promo</th><th className="p-3">Discount</th><th className="p-3">Total</th><th className="p-3">Status</th><th className="p-3">Date</th><th className="p-3">Actions</th>
                   </tr></thead>
                   <tbody>
                     {filteredOrders.map(o => (
                       <tr key={o.id} className="border-b border-border hover:bg-muted/30">
                         <td className="p-3 font-mono text-xs">{o.public_order_id}</td>
                         <td className="p-3">{o.buyer_roblox_username}</td>
-                        <td className="p-3">${Number(o.total_usd).toFixed(2)}</td>
+                        <td className="p-3">${Number(o.subtotal_usd).toFixed(2)}</td>
+                        <td className="p-3 font-mono text-xs">{(o as any).promo_code || '—'}</td>
+                        <td className="p-3 text-xs">{Number((o as any).discount_amount || 0) > 0 ? `-$${Number((o as any).discount_amount).toFixed(2)}` : '—'}</td>
+                        <td className="p-3 font-semibold">${Number(o.total_usd).toFixed(2)}</td>
                         <td className="p-3"><StatusBadge status={o.status} /></td>
                         <td className="p-3 text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</td>
                         <td className="p-3">
@@ -192,7 +195,6 @@ const AdminDashboard = () => {
                               <SelectTrigger className="h-8 text-xs w-36"><SelectValue placeholder="Update..." /></SelectTrigger>
                               <SelectContent>{ORDER_STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g,' ')}</SelectItem>)}</SelectContent>
                             </Select>
-                            <span className="text-xs text-muted-foreground italic">Customer must contact support</span>
                           </div>
                         </td>
                       </tr>
