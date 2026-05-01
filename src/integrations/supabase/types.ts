@@ -203,6 +203,7 @@ export type Database = {
           buyer_email: string | null
           buyer_roblox_username: string
           created_at: string
+          discount_amount: number
           estimated_wait_minutes: number | null
           expected_crypto_amount: string | null
           id: string
@@ -212,6 +213,8 @@ export type Database = {
           payment_address: string | null
           payment_expires_at: string | null
           payment_payload: Json | null
+          promo_code: string | null
+          promo_code_id: string | null
           public_order_id: string
           queue_position: number | null
           selected_crypto: string | null
@@ -228,6 +231,7 @@ export type Database = {
           buyer_email?: string | null
           buyer_roblox_username: string
           created_at?: string
+          discount_amount?: number
           estimated_wait_minutes?: number | null
           expected_crypto_amount?: string | null
           id?: string
@@ -237,6 +241,8 @@ export type Database = {
           payment_address?: string | null
           payment_expires_at?: string | null
           payment_payload?: Json | null
+          promo_code?: string | null
+          promo_code_id?: string | null
           public_order_id?: string
           queue_position?: number | null
           selected_crypto?: string | null
@@ -253,6 +259,7 @@ export type Database = {
           buyer_email?: string | null
           buyer_roblox_username?: string
           created_at?: string
+          discount_amount?: number
           estimated_wait_minutes?: number | null
           expected_crypto_amount?: string | null
           id?: string
@@ -262,6 +269,8 @@ export type Database = {
           payment_address?: string | null
           payment_expires_at?: string | null
           payment_payload?: Json | null
+          promo_code?: string | null
+          promo_code_id?: string | null
           public_order_id?: string
           queue_position?: number | null
           selected_crypto?: string | null
@@ -271,7 +280,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -422,6 +439,45 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expiration_date: string | null
+          id: string
+          updated_at: string
+          usage_count: number
+          usage_limit: number | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expiration_date?: string | null
+          id?: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expiration_date?: string | null
+          id?: string
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -454,6 +510,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_promo_usage: {
+        Args: { p_promo_id: string }
+        Returns: undefined
+      }
       lookup_order: {
         Args: { p_access_code: string; p_order_id: string }
         Returns: {
@@ -463,6 +523,7 @@ export type Database = {
           buyer_email: string | null
           buyer_roblox_username: string
           created_at: string
+          discount_amount: number
           estimated_wait_minutes: number | null
           expected_crypto_amount: string | null
           id: string
@@ -472,6 +533,8 @@ export type Database = {
           payment_address: string | null
           payment_expires_at: string | null
           payment_payload: Json | null
+          promo_code: string | null
+          promo_code_id: string | null
           public_order_id: string
           queue_position: number | null
           selected_crypto: string | null
@@ -487,6 +550,19 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      validate_promo_code: {
+        Args: { p_code: string; p_subtotal: number }
+        Returns: {
+          code: string
+          discount_amount: number
+          discount_type: string
+          discount_value: number
+          final_total: number
+          promo_id: string
+          reason: string
+          valid: boolean
+        }[]
       }
     }
     Enums: {
