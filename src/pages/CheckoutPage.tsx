@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Copy, Shield, Lock, ExternalLink } from 'lucide-react';
+import { Copy, Shield, Lock, ExternalLink, Tag, X } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,15 @@ import { formatLineItem, generateOrderId, generateAccessCode } from '@/config/br
 import { sendOrderConfirmationEmail } from '@/services/emailService';
 import SupportCTA from '@/components/store/SupportCTA';
 
+interface AppliedPromo {
+  code: string;
+  promo_id: string;
+  discount_type: string;
+  discount_value: number;
+  discount_amount: number;
+  final_total: number;
+}
+
 const CheckoutPage = () => {
   const { items, subtotal, clearCart, getLineUnitPrice, getLineSubtotal } = useCart();
   const { user } = useAuth();
@@ -20,16 +29,54 @@ const CheckoutPage = () => {
   const [robloxUsername, setRobloxUsername] = useState('');
   const [discordUsername, setDiscordUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [orderCreated, setOrderCreated] = useState<{
-    orderId: string;
-    accessCode: string;
-  } | null>(null);
+  const [promoInput, setPromoInput] = useState('');
+  const [applyingPromo, setApplyingPromo] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [orderCreated, setOrderCreated] = useState<{ orderId: string; accessCode: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+
+  const discountAmount = appliedPromo?.discount_amount ?? 0;
+  const finalTotal = Math.max(subtotal - discountAmount, 0);
 
   const copyToClipboard = (text: string, label?: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label || 'Text'} copied to clipboard`);
+  };
+
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim();
+    if (!code) { toast.error('Enter a promo code'); return; }
+    setApplyingPromo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-promo', {
+        body: { code, subtotal },
+      });
+      if (error) throw error;
+      if (!data?.valid) {
+        toast.error(data?.reason || 'Invalid promo code');
+        setAppliedPromo(null);
+        return;
+      }
+      setAppliedPromo({
+        code: data.code,
+        promo_id: data.promo_id,
+        discount_type: data.discount_type,
+        discount_value: Number(data.discount_value),
+        discount_amount: Number(data.discount_amount),
+        final_total: Number(data.final_total),
+      });
+      toast.success(`Promo applied: -$${Number(data.discount_amount).toFixed(2)}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to apply promo');
+    } finally {
+      setApplyingPromo(false);
+    }
+  };
+
+  const removePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput('');
   };
 
   const handleCreateOrder = async () => {
@@ -38,6 +85,31 @@ const CheckoutPage = () => {
 
     setLoading(true);
     try {
+      // Re-validate promo at submit (server-side) to keep it honest
+      let promoToUse = appliedPromo;
+      if (promoToUse) {
+        const { data: revalidate } = await supabase.functions.invoke('validate-promo', {
+          body: { code: promoToUse.code, subtotal },
+        });
+        if (!revalidate?.valid) {
+          toast.error(revalidate?.reason || 'Promo code no longer valid');
+          setAppliedPromo(null);
+          setLoading(false);
+          return;
+        }
+        promoToUse = {
+          code: revalidate.code,
+          promo_id: revalidate.promo_id,
+          discount_type: revalidate.discount_type,
+          discount_value: Number(revalidate.discount_value),
+          discount_amount: Number(revalidate.discount_amount),
+          final_total: Number(revalidate.final_total),
+        };
+      }
+
+      const finalDiscount = promoToUse?.discount_amount ?? 0;
+      const finalTotalUsd = Math.max(subtotal - finalDiscount, 0);
+
       const publicOrderId = generateOrderId();
       const accessCode = generateAccessCode();
 
@@ -49,15 +121,17 @@ const CheckoutPage = () => {
         buyer_discord_username: discordUsername.trim() || null,
         buyer_email: email.trim() || null,
         subtotal_usd: subtotal,
-        total_usd: subtotal,
+        discount_amount: finalDiscount,
+        promo_code: promoToUse?.code || null,
+        promo_code_id: promoToUse?.promo_id || null,
+        total_usd: finalTotalUsd,
         status: 'awaiting_payment',
       });
 
       if (orderError) throw orderError;
 
       const { data: orderRow } = await supabase.rpc('lookup_order', {
-        p_order_id: publicOrderId,
-        p_access_code: accessCode,
+        p_order_id: publicOrderId, p_access_code: accessCode,
       });
 
       const orderId = orderRow?.[0]?.id;
@@ -76,14 +150,16 @@ const CheckoutPage = () => {
         await supabase.from('order_events').insert({
           order_id: orderId,
           event_type: 'order_created',
-          event_message: 'Order created, proceeding to payment',
+          event_message: promoToUse
+            ? `Order created with promo ${promoToUse.code} (-$${finalDiscount.toFixed(2)})`
+            : 'Order created, proceeding to payment',
+          metadata: promoToUse ? { promo_code: promoToUse.code, discount_amount: finalDiscount } : null,
         });
       }
 
       setOrderCreated({ orderId: publicOrderId, accessCode });
       clearCart();
 
-      // Send email
       const recipientEmail = email.trim() || user?.email;
       if (recipientEmail) {
         const itemsSummary = items.map(i => formatLineItem(i.name, i.quantity)).join(', ');
@@ -91,14 +167,16 @@ const CheckoutPage = () => {
           orderId: publicOrderId,
           accessCode,
           itemsSummary,
-          totalUsd: subtotal.toFixed(2),
+          subtotalUsd: subtotal.toFixed(2),
+          promoCode: promoToUse?.code,
+          discountAmount: finalDiscount.toFixed(2),
+          totalUsd: finalTotalUsd.toFixed(2),
         });
       }
 
       toast.success('Order created! Redirecting to payment...');
 
-      // Skip payment for free orders
-      if (subtotal === 0) {
+      if (finalTotalUsd === 0) {
         setRedirecting(false);
         return;
       }
@@ -182,7 +260,7 @@ const CheckoutPage = () => {
           {!redirecting && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                {subtotal === 0
+                {finalTotal === 0
                   ? 'This is a free order — no payment needed!'
                   : "If you weren't redirected, click below to complete payment."}
               </p>
@@ -190,7 +268,7 @@ const CheckoutPage = () => {
                 <Button variant="outline" className="flex-1" onClick={() => navigate(`/track?order=${orderCreated.orderId}`)}>
                   Track Order
                 </Button>
-                {subtotal > 0 && (
+                {finalTotal > 0 && (
                   <Button className="flex-1 gradient-primary text-primary-foreground"
                     onClick={async () => {
                       setRedirecting(true);
@@ -216,7 +294,6 @@ const CheckoutPage = () => {
     );
   }
 
-  // Main checkout form
   return (
     <Layout>
       <div className="container mx-auto px-4 py-10 max-w-3xl">
@@ -269,16 +346,57 @@ const CheckoutPage = () => {
                   </div>
                 );
               })}
+
+              <div className="border-t border-border pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+
+                {/* Promo code */}
+                {!appliedPromo ? (
+                  <div className="flex gap-2 pt-1">
+                    <Input
+                      value={promoInput}
+                      onChange={e => setPromoInput(e.target.value.toUpperCase())}
+                      placeholder="Promo code"
+                      className="bg-muted h-9"
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleApplyPromo(); } }}
+                    />
+                    <Button size="sm" variant="outline" onClick={handleApplyPromo} disabled={applyingPromo}>
+                      {applyingPromo ? '...' : 'Apply'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-success/10 border border-success/30 rounded-md px-3 py-2 text-sm">
+                    <div className="flex items-center gap-2 text-success">
+                      <Tag className="h-4 w-4" />
+                      <span className="font-mono font-semibold">{appliedPromo.code}</span>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={removePromo}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {appliedPromo && (
+                  <div className="flex justify-between text-sm text-success">
+                    <span>Discount{appliedPromo.discount_type === 'percentage' ? ` (${appliedPromo.discount_value}%)` : ''}</span>
+                    <span>-${discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="border-t border-border pt-3 flex justify-between font-bold">
-                <span>Total</span><span>${subtotal.toFixed(2)}</span>
+                <span>Total</span><span>${finalTotal.toFixed(2)}</span>
               </div>
               <Button
                 className="w-full gradient-primary text-primary-foreground glow-primary" size="lg"
                 onClick={handleCreateOrder} disabled={loading || redirecting}
               >
-                {loading ? 'Creating Order...' : redirecting ? 'Redirecting...' : subtotal === 0 ? 'Place Free Order' : 'Continue to Secure Payment'}
+                {loading ? 'Creating Order...' : redirecting ? 'Redirecting...' : finalTotal === 0 ? 'Place Free Order' : 'Continue to Secure Payment'}
               </Button>
-              {subtotal > 0 && <p className="text-xs text-center text-muted-foreground">You'll choose your crypto on the next page</p>}
+              {finalTotal > 0 && <p className="text-xs text-center text-muted-foreground">You'll choose your crypto on the next page</p>}
             </div>
           </div>
         </div>
