@@ -1,18 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles, Star } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles, Star, Gem } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
-import { BRAND, getHugeUnitPrice, getHugeSubtotal, type ProductType } from '@/config/brand';
+import { BRAND, getHugeUnitPrice, getHugeSubtotal } from '@/config/brand';
 
 const HUGE_QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250];
 
 const ShopPage = () => {
   const [hugeQty, setHugeQty] = useState(10);
   const [titanicQty, setTitanicQty] = useState(1);
+  const [gemsQty, setGemsQty] = useState(1);
   const { addItem } = useCart();
   const navigate = useNavigate();
 
@@ -24,9 +25,9 @@ const ShopPage = () => {
     },
   });
 
-  const freeProduct = products?.find(p => (p as any).product_type === 'free_test_product');
   const hugeProduct = products?.find(p => (p as any).product_type === 'random_huge_bundle');
   const titanicProduct = products?.find(p => (p as any).product_type === 'random_titanic_bundle');
+  const gemsProduct = products?.find(p => (p as any).product_type === 'gems_bundle');
 
   const hugeUnitPrice = getHugeUnitPrice(hugeQty);
   const hugeTotal = getHugeSubtotal(hugeQty).toFixed(2);
@@ -35,6 +36,9 @@ const ShopPage = () => {
 
   const titanicUnitPrice = BRAND.titanicPrice;
   const titanicTotal = (titanicQty * titanicUnitPrice).toFixed(2);
+
+  const gemsUnitPrice = BRAND.gemsPrice;
+  const gemsTotal = (gemsQty * gemsUnitPrice).toFixed(2);
 
   const handleAddHuges = () => {
     addItem({
@@ -62,31 +66,31 @@ const ShopPage = () => {
     navigate('/cart');
   };
 
-  const handleAddFree = () => {
+  const handleAddGems = () => {
     addItem({
-      id: freeProduct?.id || 'free-test-product',
-      name: 'Free Test Product',
-      slug: 'free-test-product',
-      product_type: 'free_test_product',
-      price_usd: 0,
+      id: gemsProduct?.id || '1b-gems',
+      name: '1B Gems',
+      slug: '1b-gems',
+      product_type: 'gems_bundle',
+      price_usd: gemsUnitPrice,
       image_url: null,
       stock_quantity: 9999,
-    }, 1);
+    }, gemsQty);
     navigate('/cart');
   };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-10">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
             <h1 className="font-display text-4xl md:text-5xl font-black mb-4">PS99Loot Shop</h1>
             <p className="text-muted-foreground text-lg">
-              Buy Random Huges, Titanic Pets, and more — delivered manually in Roblox.
+              Buy Random Huges, Titanic Pets, and Gems — delivered manually in Roblox.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
             {/* ── Random Huges Card ── */}
             <div className="bg-card border border-primary/30 rounded-2xl p-6 glow-primary relative overflow-hidden">
               {isBulk && (
@@ -118,7 +122,6 @@ const ShopPage = () => {
                 )}
               </div>
 
-              {/* Quantity */}
               <div className="mb-4">
                 <p className="text-sm font-semibold mb-2 text-center">How many?</p>
                 <div className="flex items-center justify-center gap-3 mb-3">
@@ -159,7 +162,7 @@ const ShopPage = () => {
               </div>
 
               <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddHuges}>
-                <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart — ${hugeTotal}
+                <ShoppingCart className="mr-2 h-5 w-5" /> Add — ${hugeTotal}
               </Button>
             </div>
 
@@ -177,7 +180,6 @@ const ShopPage = () => {
                 <p className="text-sm text-muted-foreground mb-4">per Titanic Pet</p>
               </div>
 
-              {/* Quantity */}
               <div className="mb-4">
                 <p className="text-sm font-semibold mb-2 text-center">How many?</p>
                 <div className="flex items-center justify-center gap-3 mb-3">
@@ -203,24 +205,52 @@ const ShopPage = () => {
               </div>
 
               <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddTitanic}>
-                <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart — ${titanicTotal}
+                <ShoppingCart className="mr-2 h-5 w-5" /> Add — ${titanicTotal}
               </Button>
             </div>
-          </div>
 
-          {/* ── Free Test Product ── */}
-          <div className="bg-card border border-border rounded-2xl p-6 max-w-md mx-auto mb-10">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Package className="h-5 w-5 text-muted-foreground" />
-              <span className="font-display text-lg font-bold">Free Test Product</span>
-              <span className="bg-success/20 text-success text-xs px-2 py-0.5 rounded-full font-semibold">FREE</span>
+            {/* ── 1B Gems Card ── */}
+            <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Gem className="h-6 w-6 text-primary" />
+                <span className="font-display text-xl font-bold">1B Gems</span>
+              </div>
+
+              <div className="text-center">
+                <div className="text-4xl font-display font-black text-primary mb-1">
+                  ${gemsUnitPrice.toFixed(2)}
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">per 1 Billion Gems</p>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm font-semibold mb-2 text-center">How many?</p>
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setGemsQty(Math.max(1, gemsQty - 1))}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <input
+                    type="number" min={1} max={9999} value={gemsQty}
+                    onChange={e => setGemsQty(Math.max(1, Math.min(9999, parseInt(e.target.value) || 1)))}
+                    className="w-20 text-center text-2xl font-display font-bold bg-transparent border-b-2 border-primary/50 focus:border-primary outline-none"
+                  />
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setGemsQty(Math.min(9999, gemsQty + 1))}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">{gemsQty}× 1B Gems</span>
+                  <span className="font-display font-bold text-xl">${gemsTotal}</span>
+                </div>
+              </div>
+
+              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddGems}>
+                <ShoppingCart className="mr-2 h-5 w-5" /> Add — ${gemsTotal}
+              </Button>
             </div>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              Test the checkout and order chat flow — no payment required.
-            </p>
-            <Button variant="outline" className="w-full" onClick={handleAddFree}>
-              <ShoppingCart className="mr-2 h-4 w-4" /> Add Free Test Product
-            </Button>
           </div>
 
           {/* Trust Points */}

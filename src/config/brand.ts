@@ -10,10 +10,11 @@ export const BRAND = {
   bulkThreshold: 100,
   bulkDiscountPercent: 33,
   titanicPrice: 15.0,
+  gemsPrice: 5.0,
   cryptos: ['BTC', 'ETH', 'LTC', 'USDT'],
 } as const;
 
-export type ProductType = 'free_test_product' | 'random_huge_bundle' | 'random_titanic_bundle';
+export type ProductType = 'random_huge_bundle' | 'random_titanic_bundle' | 'gems_bundle';
 
 /** Get unit price for Random Huges based on quantity */
 export function getHugeUnitPrice(quantity: number): number {
@@ -38,9 +39,9 @@ export function getSubtotal(quantity: number): number {
 /** Get unit price by product type */
 export function getProductUnitPrice(productType: ProductType, quantity: number): number {
   switch (productType) {
-    case 'free_test_product': return 0;
     case 'random_huge_bundle': return getHugeUnitPrice(quantity);
     case 'random_titanic_bundle': return BRAND.titanicPrice;
+    case 'gems_bundle': return BRAND.gemsPrice;
     default: return 0;
   }
 }
@@ -48,12 +49,10 @@ export function getProductUnitPrice(productType: ProductType, quantity: number):
 /** Pluralize product name */
 export function pluralizeProduct(name: string, quantity: number): string {
   if (quantity === 1) {
-    // Singular forms
     if (name === 'Random Huges') return 'Random Huge';
     if (name === 'Random Titanic Pets') return 'Random Titanic Pet';
     return name;
   }
-  // Plural forms
   if (name === 'Random Huge') return 'Random Huges';
   if (name === 'Random Titanic Pet') return 'Random Titanic Pets';
   return name;

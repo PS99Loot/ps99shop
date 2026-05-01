@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     // Find order by trackId
     const { data: orders, error: findError } = await supabase
       .from("orders")
-      .select("id, public_order_id, status")
+      .select("id, public_order_id, status, promo_code_id")
       .eq("oxapay_track_id", trackId)
       .limit(1);
 
@@ -85,6 +85,14 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error("Failed to update order:", updateError);
+    }
+
+    // Increment promo usage when order transitions to paid
+    if ((updateData.status === "paid") && order.status !== "paid" && (order as any).promo_code_id) {
+      const { error: promoErr } = await supabase.rpc("increment_promo_usage", {
+        p_promo_id: (order as any).promo_code_id,
+      });
+      if (promoErr) console.error("Failed to increment promo usage:", promoErr);
     }
 
     // Log event
