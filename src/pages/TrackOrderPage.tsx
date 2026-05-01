@@ -71,7 +71,6 @@ const TrackOrderPage = () => {
 
   const currentStep = order ? ORDER_TIMELINE.indexOf(order.status) : -1;
   const canPay = order && order.status === 'awaiting_payment' && order.oxapay_payment_url;
-  const canPay = order && order.status === 'awaiting_payment' && order.oxapay_payment_url;
 
   const { data: myOrders } = useQuery({
     queryKey: ['my-orders', user?.id],
