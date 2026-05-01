@@ -70,7 +70,7 @@ const TrackOrderPage = () => {
   };
 
   const currentStep = order ? ORDER_TIMELINE.indexOf(order.status) : -1;
-  const chatAllowed = order && ['paid', 'queued_for_delivery', 'in_delivery', 'completed'].includes(order.status);
+  const canPay = order && order.status === 'awaiting_payment' && order.oxapay_payment_url;
   const canPay = order && order.status === 'awaiting_payment' && order.oxapay_payment_url;
 
   const { data: myOrders } = useQuery({
