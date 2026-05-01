@@ -7,7 +7,7 @@ import { BRAND } from '@/config/brand';
 const TRUST_ITEMS = [
   { icon: Shield, title: 'Manual Safe Delivery', desc: 'Every item delivered personally in Roblox' },
   { icon: Zap, title: 'Automated Payment Detection', desc: 'Crypto payments confirmed automatically' },
-  { icon: MessageCircle, title: 'Live Order Support', desc: 'Chat opens after payment for coordination' },
+  { icon: MessageCircle, title: 'Live Support Chat', desc: 'Reach our team anytime via the chat widget' },
   { icon: Bitcoin, title: 'Crypto Accepted', desc: 'BTC, ETH, LTC, USDT supported' },
   { icon: Tag, title: 'No Order Minimum', desc: 'Buy as few or as many as you want' },
 ];
