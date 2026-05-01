@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       lifeTime: 30, // minutes
       callbackUrl,
       orderId: order.public_order_id,
-      description: `PS99Loot Order ${order.public_order_id} - ${Math.round(Number(order.total_usd) / 0.15)} Random Huges`,
+      description: `PS99Loot Order ${order.public_order_id}`,
     };
 
     console.log("Creating OxaPay invoice for order:", orderId);
