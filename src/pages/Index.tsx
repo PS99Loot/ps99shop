@@ -16,7 +16,7 @@ const STEPS = [
   { num: '01', title: 'Choose Your Quantity', desc: 'Pick how many Random Huges you want' },
   { num: '02', title: 'Pay with Crypto', desc: 'Select your cryptocurrency and send payment' },
   { num: '03', title: 'Payment Confirmed', desc: 'Automated detection confirms your payment' },
-  { num: '04', title: 'Get Delivery', desc: 'Join chat and receive your items in Roblox' },
+  { num: '04', title: 'Get Delivery', desc: 'Contact support with your Order ID to claim items in Roblox' },
 ];
 
 
