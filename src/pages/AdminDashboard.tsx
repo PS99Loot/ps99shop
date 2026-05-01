@@ -114,6 +114,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="orders"><ShoppingBag className="h-4 w-4 mr-1" /> Orders</TabsTrigger>
             <TabsTrigger value="products"><Package className="h-4 w-4 mr-1" /> Products</TabsTrigger>
             <TabsTrigger value="payments"><CreditCard className="h-4 w-4 mr-1" /> Payments</TabsTrigger>
+            <TabsTrigger value="promos"><Tag className="h-4 w-4 mr-1" /> Promo Codes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
