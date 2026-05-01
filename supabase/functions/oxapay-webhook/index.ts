@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     // Find order by trackId
     const { data: orders, error: findError } = await supabase
       .from("orders")
-      .select("id, public_order_id, status")
+      .select("id, public_order_id, status, promo_code_id")
       .eq("oxapay_track_id", trackId)
       .limit(1);
 
