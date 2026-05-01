@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Package, ShoppingBag, CreditCard, MessageCircle, Search, AlertTriangle, DollarSign, TrendingUp, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, CreditCard, Search, AlertTriangle, DollarSign, TrendingUp, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { BRAND } from '@/config/brand';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -190,7 +190,7 @@ const AdminDashboard = () => {
                               <SelectTrigger className="h-8 text-xs w-36"><SelectValue placeholder="Update..." /></SelectTrigger>
                               <SelectContent>{ORDER_STATUSES.map(s => <SelectItem key={s} value={s}>{s.replace(/_/g,' ')}</SelectItem>)}</SelectContent>
                             </Select>
-                            <Link to={`/chat/${o.public_order_id}?code=${o.access_code}`}><Button variant="ghost" size="sm"><MessageCircle className="h-4 w-4" /></Button></Link>
+                            <span className="text-xs text-muted-foreground italic">Customer must contact support</span>
                           </div>
                         </td>
                       </tr>

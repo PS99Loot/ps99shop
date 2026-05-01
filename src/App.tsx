@@ -12,7 +12,6 @@ import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import TrackOrderPage from "./pages/TrackOrderPage";
-import OrderChatPage from "./pages/OrderChatPage";
 import FaqPage from "./pages/FaqPage";
 import TermsPage from "./pages/TermsPage";
 import RefundPage from "./pages/RefundPage";
@@ -39,7 +38,7 @@ const App = () => (
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/track" element={<TrackOrderPage />} />
-              <Route path="/chat/:orderId" element={<OrderChatPage />} />
+              
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/refund" element={<RefundPage />} />

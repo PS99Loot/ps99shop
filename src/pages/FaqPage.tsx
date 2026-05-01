@@ -3,11 +3,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { BRAND } from '@/config/brand';
 
 const FAQS = [
-  { q: 'How does delivery work?', a: 'After your crypto payment is confirmed, an order chat opens. Share your Roblox username and we\'ll join your game to deliver your Huges manually. It\'s safe, personal, and fast.' },
+  { q: 'How does delivery work?', a: 'After your crypto payment is confirmed, contact us via the support chat in the bottom right of the site and include your Order ID. We\'ll join your Roblox game to deliver your items manually — safe, personal, and fast.' },
   { q: 'What cryptocurrencies do you accept?', a: 'We accept Bitcoin (BTC), Ethereum (ETH), Litecoin (LTC), and USDT (ERC-20). More may be added in the future.' },
-  { q: 'How long does delivery take?', a: 'Most deliveries are completed within 15-30 minutes after payment confirmation. During busy periods it may take slightly longer.' },
-  { q: 'What if I sent the wrong amount?', a: 'If you underpay, your order may be placed on hold. If you overpay, we\'ll credit the difference or discuss via order chat. Always send the exact amount shown.' },
-  { q: 'Can I get a refund?', a: 'Refunds are handled on a case-by-case basis. If we cannot deliver your item, you\'ll be refunded. Open a dispute through your order chat.' },
+  { q: 'How long does delivery take?', a: 'Most deliveries are completed within 15-30 minutes after you contact support with your Order ID. During busy periods it may take slightly longer.' },
+  { q: 'What if I sent the wrong amount?', a: 'If you underpay, your order may be placed on hold. If you overpay, contact support via the chat with your Order ID and we\'ll sort it out. Always send the exact amount shown.' },
+  { q: 'Can I get a refund?', a: 'Refunds are handled on a case-by-case basis. If we cannot deliver your item, you\'ll be refunded. Contact support via the chat with your Order ID to open a dispute.' },
   { q: 'Do I need an account?', a: 'No! Guest checkout is supported. You\'ll receive an order ID and access code to track your order. Creating an account lets you view order history more easily.' },
   { q: 'Is this safe?', a: 'Yes. We deliver manually in-game which means your account is never at risk. Payments are handled via blockchain which provides transparency and security.' },
   { q: 'What if my payment expires?', a: 'Payment windows are typically 30 minutes. If your payment expires, you\'ll need to create a new order. No funds are lost unless sent after expiry.' },

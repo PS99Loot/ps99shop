@@ -7,7 +7,7 @@ import { BRAND } from '@/config/brand';
 const TRUST_ITEMS = [
   { icon: Shield, title: 'Manual Safe Delivery', desc: 'Every item delivered personally in Roblox' },
   { icon: Zap, title: 'Automated Payment Detection', desc: 'Crypto payments confirmed automatically' },
-  { icon: MessageCircle, title: 'Live Order Support', desc: 'Chat opens after payment for coordination' },
+  { icon: MessageCircle, title: 'Live Support Chat', desc: 'Reach our team anytime via the chat widget' },
   { icon: Bitcoin, title: 'Crypto Accepted', desc: 'BTC, ETH, LTC, USDT supported' },
   { icon: Tag, title: 'No Order Minimum', desc: 'Buy as few or as many as you want' },
 ];
@@ -16,7 +16,7 @@ const STEPS = [
   { num: '01', title: 'Choose Your Quantity', desc: 'Pick how many Random Huges you want' },
   { num: '02', title: 'Pay with Crypto', desc: 'Select your cryptocurrency and send payment' },
   { num: '03', title: 'Payment Confirmed', desc: 'Automated detection confirms your payment' },
-  { num: '04', title: 'Get Delivery', desc: 'Join chat and receive your items in Roblox' },
+  { num: '04', title: 'Get Delivery', desc: 'Contact support with your Order ID to claim items in Roblox' },
 ];
 
 
