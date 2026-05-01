@@ -180,13 +180,7 @@ const TrackOrderPage = () => {
               </div>
             )}
 
-            {chatAllowed && (
-              <Link to={`/chat/${order.public_order_id}?code=${order.access_code}`}>
-                <Button className="w-full gradient-primary text-primary-foreground glow-primary" size="lg">
-                  <MessageCircle className="mr-2 h-5 w-5" /> Open Order Chat
-                </Button>
-              </Link>
-            )}
+            <SupportCTA orderId={order.public_order_id} />
           </div>
         )}
 
