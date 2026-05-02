@@ -87,16 +87,20 @@ const ShopPage = () => {
     navigate('/cart');
   };
 
+  const hugePopKey = usePopKey(hugeQty);
+  const titanicPopKey = usePopKey(titanicQty);
+  const gemsPopKey = usePopKey(gemsQty);
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
+          <Reveal className="text-center mb-10">
             <h1 className="font-display text-4xl md:text-5xl font-black mb-4">PS99Loot Shop</h1>
             <p className="text-muted-foreground text-lg">
               Buy Random Huges, Titanic Pets, and Gems — delivered manually in Roblox.
             </p>
-          </div>
+          </Reveal>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {/* ── Random Huges Card ── */}
