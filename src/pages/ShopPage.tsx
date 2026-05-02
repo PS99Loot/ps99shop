@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles, Star, Gem } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import Reveal from '@/components/Reveal';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
 import { BRAND, getHugeUnitPrice, getHugeSubtotal } from '@/config/brand';
 
 const HUGE_QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250];
+
+/** Briefly toggles a key when value changes — used to retrigger price-pop animation */
+function usePopKey(value: number) {
+  const [key, setKey] = useState(0);
+  useEffect(() => { setKey(k => k + 1); }, [value]);
+  return key;
+}
 
 const ShopPage = () => {
   const [hugeQty, setHugeQty] = useState(10);
@@ -79,20 +87,24 @@ const ShopPage = () => {
     navigate('/cart');
   };
 
+  const hugePopKey = usePopKey(hugeQty);
+  const titanicPopKey = usePopKey(titanicQty);
+  const gemsPopKey = usePopKey(gemsQty);
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
+          <Reveal className="text-center mb-10">
             <h1 className="font-display text-4xl md:text-5xl font-black mb-4">PS99Loot Shop</h1>
             <p className="text-muted-foreground text-lg">
               Buy Random Huges, Titanic Pets, and Gems — delivered manually in Roblox.
             </p>
-          </div>
+          </Reveal>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {/* ── Random Huges Card ── */}
-            <div className="bg-card border border-primary/30 rounded-2xl p-6 glow-primary relative overflow-hidden">
+            <Reveal className="bg-card border border-primary/30 rounded-2xl p-6 glow-primary relative overflow-hidden hover-lift">
               {isBulk && (
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent animate-pulse" />
@@ -105,7 +117,7 @@ const ShopPage = () => {
               </div>
 
               <div className="text-center">
-                <div className={`text-4xl font-display font-black mb-1 transition-all duration-500 ${isBulk ? 'text-success' : 'text-primary'}`}>
+                <div key={hugePopKey} className={`text-4xl font-display font-black mb-1 transition-colors duration-500 price-pop ${isBulk ? 'text-success' : 'text-primary'}`}>
                   ${hugeUnitPrice.toFixed(2)}
                 </div>
                 <p className="text-sm text-muted-foreground mb-2">per Huge</p>
@@ -152,22 +164,22 @@ const ShopPage = () => {
               <div className="border-t border-border pt-4 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-sm">{hugeQty}× {hugeQty === 1 ? 'Random Huge' : 'Random Huges'}</span>
-                  <span className="font-display font-bold text-xl">${hugeTotal}</span>
+                  <span key={hugePopKey} className="font-display font-bold text-xl price-pop">${hugeTotal}</span>
                 </div>
                 {isBulk && (
-                  <p className="text-xs text-success mt-1 text-right">
+                  <p className="text-xs text-success mt-1 text-right animate-fade-in">
                     You save ${(hugeQty * (BRAND.priceStandard - BRAND.priceBulk)).toFixed(2)}!
                   </p>
                 )}
               </div>
 
-              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddHuges}>
+              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary hover-lift btn-press" onClick={handleAddHuges}>
                 <ShoppingCart className="mr-2 h-5 w-5" /> Add — ${hugeTotal}
               </Button>
-            </div>
+            </Reveal>
 
             {/* ── Random Titanic Pet Card ── */}
-            <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
+            <Reveal delay={120} className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden hover-lift">
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Star className="h-6 w-6 text-primary" />
                 <span className="font-display text-xl font-bold">Random Titanic Pet</span>
@@ -200,17 +212,17 @@ const ShopPage = () => {
               <div className="border-t border-border pt-4 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-sm">{titanicQty}× {titanicQty === 1 ? 'Random Titanic Pet' : 'Random Titanic Pets'}</span>
-                  <span className="font-display font-bold text-xl">${titanicTotal}</span>
+                  <span key={titanicPopKey} className="font-display font-bold text-xl price-pop">${titanicTotal}</span>
                 </div>
               </div>
 
-              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddTitanic}>
+              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary hover-lift btn-press" onClick={handleAddTitanic}>
                 <ShoppingCart className="mr-2 h-5 w-5" /> Add — ${titanicTotal}
               </Button>
-            </div>
+            </Reveal>
 
             {/* ── 1B Gems Card ── */}
-            <div className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden">
+            <Reveal delay={240} className="bg-card border border-border rounded-2xl p-6 relative overflow-hidden hover-lift">
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Gem className="h-6 w-6 text-primary" />
                 <span className="font-display text-xl font-bold">1B Gems</span>
@@ -243,14 +255,14 @@ const ShopPage = () => {
               <div className="border-t border-border pt-4 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-sm">{gemsQty}× 1B Gems</span>
-                  <span className="font-display font-bold text-xl">${gemsTotal}</span>
+                  <span key={gemsPopKey} className="font-display font-bold text-xl price-pop">${gemsTotal}</span>
                 </div>
               </div>
 
-              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary" onClick={handleAddGems}>
+              <Button size="lg" className="w-full gradient-primary text-primary-foreground glow-primary hover-lift btn-press" onClick={handleAddGems}>
                 <ShoppingCart className="mr-2 h-5 w-5" /> Add — ${gemsTotal}
               </Button>
-            </div>
+            </Reveal>
           </div>
 
           {/* Trust Points */}
