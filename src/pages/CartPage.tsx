@@ -77,11 +77,14 @@ const CartPage = () => {
                 {BRAND.bulkDiscountPercent}% bulk discount on Huges!
               </div>
             )}
-            <div className="border-t border-border pt-4 flex justify-between font-bold"><span>Total</span><span>${subtotal.toFixed(2)}</span></div>
+            <div className="border-t border-border pt-4 flex justify-between font-bold">
+              <span>Total</span>
+              <span key={subtotal} className="price-pop">${subtotal.toFixed(2)}</span>
+            </div>
             <Link to="/checkout" className="block">
-              <Button className="w-full gradient-primary text-primary-foreground glow-primary" size="lg">Proceed to Checkout</Button>
+              <Button className="w-full gradient-primary text-primary-foreground glow-primary hover-lift btn-press" size="lg">Proceed to Secure Checkout</Button>
             </Link>
-            <p className="text-xs text-muted-foreground text-center">Crypto payments only. Prices in USD.</p>
+            <p className="text-xs text-muted-foreground text-center">Crypto payments only · Prices in USD</p>
           </div>
         </div>
       </div>

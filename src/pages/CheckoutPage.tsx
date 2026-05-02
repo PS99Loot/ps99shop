@@ -388,15 +388,19 @@ const CheckoutPage = () => {
               </div>
 
               <div className="border-t border-border pt-3 flex justify-between font-bold">
-                <span>Total</span><span>${finalTotal.toFixed(2)}</span>
+                <span>Total</span>
+                <span key={finalTotal} className="price-pop">${finalTotal.toFixed(2)}</span>
               </div>
               <Button
-                className="w-full gradient-primary text-primary-foreground glow-primary" size="lg"
+                className="w-full gradient-primary text-primary-foreground glow-primary hover-lift btn-press" size="lg"
                 onClick={handleCreateOrder} disabled={loading || redirecting}
               >
-                {loading ? 'Creating Order...' : redirecting ? 'Redirecting...' : finalTotal === 0 ? 'Place Free Order' : 'Continue to Secure Payment'}
+                <Lock className="mr-2 h-4 w-4" />
+                {loading ? 'Creating Order...' : redirecting ? 'Redirecting...' : finalTotal === 0 ? 'Place Free Order' : 'Proceed to Secure Payment'}
               </Button>
-              {finalTotal > 0 && <p className="text-xs text-center text-muted-foreground">You'll choose your crypto on the next page</p>}
+              <p className="text-xs text-center text-muted-foreground">
+                After payment, contact support with your Order ID to claim items.
+              </p>
             </div>
           </div>
         </div>
