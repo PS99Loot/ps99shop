@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, ShoppingCart, Zap, Shield, Package, Sparkles, Star, Gem } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import Reveal from '@/components/Reveal';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
 import { BRAND, getHugeUnitPrice, getHugeSubtotal } from '@/config/brand';
 
 const HUGE_QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250];
+
+/** Briefly toggles a key when value changes — used to retrigger price-pop animation */
+function usePopKey(value: number) {
+  const [key, setKey] = useState(0);
+  useEffect(() => { setKey(k => k + 1); }, [value]);
+  return key;
+}
 
 const ShopPage = () => {
   const [hugeQty, setHugeQty] = useState(10);
