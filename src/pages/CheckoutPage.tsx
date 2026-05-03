@@ -72,7 +72,7 @@ const CheckoutPage = () => {
         return;
       }
       setAppliedPromo({
-        code: row.code,
+        code: row.promo_code ?? row.code,
         promo_id: row.promo_id,
         discount_type: row.discount_type,
         discount_value: Number(row.discount_value),
@@ -109,7 +109,7 @@ const CheckoutPage = () => {
           return;
         }
         promoToUse = {
-          code: revalidate.code,
+          code: revalidate.promo_code ?? revalidate.code,
           promo_id: revalidate.promo_id,
           discount_type: revalidate.discount_type,
           discount_value: Number(revalidate.discount_value),
