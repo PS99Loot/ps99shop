@@ -403,7 +403,7 @@ const CheckoutPage = () => {
                 <span key={finalTotal} className="price-pop">${finalTotal.toFixed(2)}</span>
               </div>
               <Button
-                className="w-full gradient-primary text-primary-foreground glow-primary hover-lift btn-press" size="lg"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover-lift btn-press" size="lg"
                 onClick={handleCreateOrder} disabled={loading || redirecting}
               >
                 <Lock className="mr-2 h-4 w-4" />
@@ -412,6 +412,9 @@ const CheckoutPage = () => {
               <p className="text-xs text-center text-muted-foreground">
                 After payment, contact support with your Order ID to claim items.
               </p>
+              <div className="flex justify-center pt-1">
+                <Trustpilot variant="inline" />
+              </div>
             </div>
           </div>
         </div>
