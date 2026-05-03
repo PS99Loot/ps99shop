@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { formatLineItem, generateOrderId, generateAccessCode } from '@/config/brand';
 import { sendOrderConfirmationEmail } from '@/services/emailService';
 import SupportCTA from '@/components/store/SupportCTA';
+import Trustpilot from '@/components/store/Trustpilot';
 
 interface AppliedPromo {
   code: string;
