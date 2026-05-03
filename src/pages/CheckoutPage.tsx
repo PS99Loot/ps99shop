@@ -370,13 +370,56 @@ const CheckoutPage = () => {
               <h2 className="font-display text-lg font-bold flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" /> Secure Crypto Payment
               </h2>
+              {user && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Payment method</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('crypto')}
+                      className={`border rounded-md p-3 text-left text-sm ${paymentMethod === 'crypto' ? 'border-primary bg-primary/10' : 'border-border'}`}
+                    >
+                      <div className="font-semibold flex items-center gap-2"><Lock className="h-4 w-4" /> Crypto</div>
+                      <div className="text-xs text-muted-foreground mt-1">BTC, ETH, USDT…</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('store_credit')}
+                      disabled={storeCredit < finalTotal}
+                      className={`border rounded-md p-3 text-left text-sm disabled:opacity-50 ${paymentMethod === 'store_credit' ? 'border-primary bg-primary/10' : 'border-border'}`}
+                    >
+                      <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Store Credit</div>
+                      <div className="text-xs text-muted-foreground mt-1">Balance: ${storeCredit.toFixed(2)}</div>
+                    </button>
+                  </div>
+                  {paymentMethod === 'store_credit' && storeCredit < finalTotal && (
+                    <p className="text-xs text-destructive">Insufficient balance. <a href="/wallet" className="underline">Top up</a>.</p>
+                  )}
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
-                After placing your order, you'll be redirected to a secure payment page where you can choose your preferred cryptocurrency.
+                {paymentMethod === 'crypto'
+                  ? "After placing your order, you'll be redirected to a secure payment page where you can choose your preferred cryptocurrency."
+                  : 'Your store credit balance will be charged instantly.'}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="h-3 w-3" />
                 Powered by OxaPay — safe and fast crypto payments
               </div>
+              {paymentMethod === 'crypto' && (
+                <div className="mt-3 p-3 rounded-md border border-primary/30 bg-primary/5">
+                  <p className="text-sm font-semibold">Don't have crypto? No problem!</p>
+                  <p className="text-xs text-muted-foreground mb-2">Buy crypto instantly and complete your order.</p>
+                  <a
+                    href="https://swapped.com/trade"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                  >
+                    Buy Crypto <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
