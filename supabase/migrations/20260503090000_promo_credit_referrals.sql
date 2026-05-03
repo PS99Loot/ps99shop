@@ -187,7 +187,7 @@ BEGIN
   INSERT INTO public.credit_transactions(user_id, amount, balance_after, type, order_id, reference, note)
     VALUES (uid, -ord.total_usd, new_bal, 'purchase', ord.id, 'order:' || ord.public_order_id, 'Paid order with store credit');
   UPDATE public.orders
-    SET status = 'paid_pending_fulfillment',
+    SET status = 'paid',
         payment_method = 'store_credit',
         store_credit_applied = ord.total_usd,
         updated_at = now()
