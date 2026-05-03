@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Wallet, Copy, ExternalLink } from 'lucide-react';
-import { buildCpxIframeUrl, CPX_APP_ID } from '@/config/cpx';
 
 const WalletPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -52,7 +51,6 @@ const WalletPage = () => {
   };
 
   const referralLink = referralCode ? `${window.location.origin}/r/${referralCode}` : '';
-  const cpxUrl = user ? buildCpxIframeUrl(user.id) : null;
 
   if (!authLoading && !user) {
     return (
@@ -107,24 +105,6 @@ const WalletPage = () => {
             </div>
           </div>
         )}
-
-        <div className="bg-card border border-border rounded-lg p-6 space-y-3">
-          <h2 className="font-display text-lg font-bold">Earn Store Credit</h2>
-          <p className="text-sm text-muted-foreground">Earn store credit by completing surveys.</p>
-          {cpxUrl ? (
-            <iframe
-              src={cpxUrl}
-              title="CPX Research Surveys"
-              className="w-full rounded-md border border-border"
-              style={{ height: 720 }}
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          ) : (
-            <p className="text-sm text-destructive">
-              Surveys are not yet configured. {CPX_APP_ID ? '' : 'Set VITE_CPX_APP_ID to enable.'}
-            </p>
-          )}
-        </div>
 
         <div className="bg-card border border-border rounded-lg p-6">
           <h2 className="font-display text-lg font-bold mb-3">Transaction history</h2>
