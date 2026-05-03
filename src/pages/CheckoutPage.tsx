@@ -97,12 +97,10 @@ const CheckoutPage = () => {
 
     setLoading(true);
     try {
-      // Re-validate promo at submit (server-side) to keep it honest
+      // Re-validate promo at submit (server-side via RPC) to keep it honest
       let promoToUse = appliedPromo;
       if (promoToUse) {
-        const { data: revalidate } = await supabase.functions.invoke('validate-promo', {
-          body: { code: promoToUse.code, subtotal },
-        });
+        const revalidate: any = await validatePromoDirect(promoToUse.code, subtotal);
         if (!revalidate?.valid) {
           toast.error(revalidate?.reason || 'Promo code no longer valid');
           setAppliedPromo(null);
