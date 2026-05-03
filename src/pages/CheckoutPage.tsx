@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { formatLineItem, generateOrderId, generateAccessCode } from '@/config/brand';
 import { sendOrderConfirmationEmail } from '@/services/emailService';
 import SupportCTA from '@/components/store/SupportCTA';
+import Trustpilot from '@/components/store/Trustpilot';
 
 interface AppliedPromo {
   code: string;
@@ -44,31 +45,43 @@ const CheckoutPage = () => {
     toast.success(`${label || 'Text'} copied to clipboard`);
   };
 
+  const validatePromoDirect = async (code: string, sub: number) => {
+    console.log('[promo] validating via direct RPC (no edge function)', { code, sub });
+    const { data, error } = await supabase.rpc('validate_promo_code', {
+      p_code: code,
+      p_subtotal: sub,
+    });
+    if (error) {
+      console.error('[promo] RPC error', error);
+      return { valid: false, reason: 'Could not validate promo code' };
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    console.log('[promo] result', row);
+    return row || { valid: false, reason: 'Invalid promo code' };
+  };
+
   const handleApplyPromo = async () => {
     const code = promoInput.trim();
     if (!code) { toast.error('Enter a promo code'); return; }
     setApplyingPromo(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-promo', {
-        body: { code, subtotal },
-      });
-      if (error) throw error;
-      if (!data?.valid) {
-        toast.error(data?.reason || 'Invalid promo code');
+      const row: any = await validatePromoDirect(code, subtotal);
+      if (!row?.valid) {
+        toast.error(row?.reason || 'Invalid promo code');
         setAppliedPromo(null);
         return;
       }
       setAppliedPromo({
-        code: data.code,
-        promo_id: data.promo_id,
-        discount_type: data.discount_type,
-        discount_value: Number(data.discount_value),
-        discount_amount: Number(data.discount_amount),
-        final_total: Number(data.final_total),
+        code: row.code,
+        promo_id: row.promo_id,
+        discount_type: row.discount_type,
+        discount_value: Number(row.discount_value),
+        discount_amount: Number(row.discount_amount),
+        final_total: Number(row.final_total),
       });
-      toast.success(`Promo applied: -$${Number(data.discount_amount).toFixed(2)}`);
+      toast.success(`Promo applied: -$${Number(row.discount_amount).toFixed(2)}`);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to apply promo');
+      toast.error('Could not apply promo code');
     } finally {
       setApplyingPromo(false);
     }
@@ -85,12 +98,10 @@ const CheckoutPage = () => {
 
     setLoading(true);
     try {
-      // Re-validate promo at submit (server-side) to keep it honest
+      // Re-validate promo at submit (server-side via RPC) to keep it honest
       let promoToUse = appliedPromo;
       if (promoToUse) {
-        const { data: revalidate } = await supabase.functions.invoke('validate-promo', {
-          body: { code: promoToUse.code, subtotal },
-        });
+        const revalidate: any = await validatePromoDirect(promoToUse.code, subtotal);
         if (!revalidate?.valid) {
           toast.error(revalidate?.reason || 'Promo code no longer valid');
           setAppliedPromo(null);
@@ -392,7 +403,7 @@ const CheckoutPage = () => {
                 <span key={finalTotal} className="price-pop">${finalTotal.toFixed(2)}</span>
               </div>
               <Button
-                className="w-full gradient-primary text-primary-foreground glow-primary hover-lift btn-press" size="lg"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover-lift btn-press" size="lg"
                 onClick={handleCreateOrder} disabled={loading || redirecting}
               >
                 <Lock className="mr-2 h-4 w-4" />
@@ -401,6 +412,9 @@ const CheckoutPage = () => {
               <p className="text-xs text-center text-muted-foreground">
                 After payment, contact support with your Order ID to claim items.
               </p>
+              <div className="flex justify-center pt-1">
+                <Trustpilot variant="inline" />
+              </div>
             </div>
           </div>
         </div>

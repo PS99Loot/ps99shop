@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import Reveal from '@/components/Reveal';
+import Trustpilot from '@/components/store/Trustpilot';
 
 const REVIEWS = [
   { user: 'AidenPlayz', text: 'Got my huges in minutes, legit 🔥. Will buy again for sure.', stars: 5 },
@@ -28,7 +29,10 @@ const Reviews = ({ compact = false }: { compact?: boolean }) => {
             <Stars n={5} />
             <span className="text-sm font-semibold">4.9/5 from 1,200+ buyers</span>
           </div>
-          <h2 className="font-display text-2xl md:text-3xl font-bold">What players are saying</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">What players are saying</h2>
+          <div className="flex justify-center">
+            <Trustpilot />
+          </div>
         </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
           {list.map((r, i) => (
