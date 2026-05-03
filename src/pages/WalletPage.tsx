@@ -25,12 +25,12 @@ const WalletPage = () => {
 
   const refresh = async () => {
     if (!user) return;
-    const { data: prof } = await supabase.from('profiles').select('store_credit_usd, referral_code').eq('id', user.id).maybeSingle();
+    const { data: prof } = await (supabase as any).from('profiles').select('store_credit_usd, referral_code').eq('id', user.id).maybeSingle();
     setBalance(Number(prof?.store_credit_usd ?? 0));
     setReferralCode(prof?.referral_code ?? null);
-    const { data: txs } = await supabase.from('credit_transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
+    const { data: txs } = await (supabase as any).from('credit_transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
     setTx(txs ?? []);
-    const { data: rw } = await supabase.from('referral_rewards').select('*').eq('referrer_user_id', user.id).order('created_at', { ascending: false }).limit(50);
+    const { data: rw } = await (supabase as any).from('referral_rewards').select('*').eq('referrer_user_id', user.id).order('created_at', { ascending: false }).limit(50);
     setRewards(rw ?? []);
   };
 
