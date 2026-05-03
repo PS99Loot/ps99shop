@@ -44,31 +44,43 @@ const CheckoutPage = () => {
     toast.success(`${label || 'Text'} copied to clipboard`);
   };
 
+  const validatePromoDirect = async (code: string, sub: number) => {
+    console.log('[promo] validating via direct RPC (no edge function)', { code, sub });
+    const { data, error } = await supabase.rpc('validate_promo_code', {
+      p_code: code,
+      p_subtotal: sub,
+    });
+    if (error) {
+      console.error('[promo] RPC error', error);
+      return { valid: false, reason: 'Could not validate promo code' };
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    console.log('[promo] result', row);
+    return row || { valid: false, reason: 'Invalid promo code' };
+  };
+
   const handleApplyPromo = async () => {
     const code = promoInput.trim();
     if (!code) { toast.error('Enter a promo code'); return; }
     setApplyingPromo(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-promo', {
-        body: { code, subtotal },
-      });
-      if (error) throw error;
-      if (!data?.valid) {
-        toast.error(data?.reason || 'Invalid promo code');
+      const row: any = await validatePromoDirect(code, subtotal);
+      if (!row?.valid) {
+        toast.error(row?.reason || 'Invalid promo code');
         setAppliedPromo(null);
         return;
       }
       setAppliedPromo({
-        code: data.code,
-        promo_id: data.promo_id,
-        discount_type: data.discount_type,
-        discount_value: Number(data.discount_value),
-        discount_amount: Number(data.discount_amount),
-        final_total: Number(data.final_total),
+        code: row.code,
+        promo_id: row.promo_id,
+        discount_type: row.discount_type,
+        discount_value: Number(row.discount_value),
+        discount_amount: Number(row.discount_amount),
+        final_total: Number(row.final_total),
       });
-      toast.success(`Promo applied: -$${Number(data.discount_amount).toFixed(2)}`);
+      toast.success(`Promo applied: -$${Number(row.discount_amount).toFixed(2)}`);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to apply promo');
+      toast.error('Could not apply promo code');
     } finally {
       setApplyingPromo(false);
     }
