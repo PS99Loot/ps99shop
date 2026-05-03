@@ -213,3 +213,34 @@ DROP TRIGGER IF EXISTS profiles_set_referral_code ON public.profiles;
 CREATE TRIGGER profiles_set_referral_code
   BEFORE INSERT ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.tg_profile_set_referral_code();
+
+-- =====================================================================
+-- 5) CREDIT TOP-UPS (separate from orders, paid via OxaPay)
+-- =====================================================================
+CREATE TABLE IF NOT EXISTS public.credit_topups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  public_topup_id TEXT NOT NULL UNIQUE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  amount_usd NUMERIC(10,2) NOT NULL CHECK (amount_usd > 0),
+  status TEXT NOT NULL DEFAULT 'awaiting_payment',
+  oxapay_track_id TEXT,
+  oxapay_payment_url TEXT,
+  payment_payload JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  paid_at TIMESTAMPTZ
+);
+ALTER TABLE public.credit_topups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users view own topups" ON public.credit_topups FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admins view all topups" ON public.credit_topups FOR SELECT USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE OR REPLACE FUNCTION public.gen_topup_id() RETURNS TEXT
+LANGUAGE plpgsql AS $$
+DECLARE c TEXT;
+BEGIN
+  LOOP
+    c := 'TU-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 10));
+    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.credit_topups WHERE public_topup_id = c);
+  END LOOP;
+  RETURN c;
+END;
+$$;
