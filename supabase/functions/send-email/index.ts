@@ -12,40 +12,128 @@ interface EmailRequest {
   data?: Record<string, string>
 }
 
-function buildWelcome(): { subject: string; textContent: string } {
+function buildWelcome(): { subject: string; htmlContent: string; textContent: string } {
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Thank You for Signing Up</title>
+</head>
+<body style="margin:0; padding:0; background:#f4f4f4; font-family:Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:30px 15px;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden;">
+          <tr>
+            <td align="center" style="background:#6c5ce7; padding:25px;">
+              <img src="https://www.ps99loot.com/shoplogo.png" alt="PS99Loot Logo" style="max-width:160px; display:block; margin-bottom:15px;">
+              <h1 style="color:#ffffff; margin:0;">Welcome to PS99Loot</h1>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:35px 25px;">
+              <h2 style="color:#222;">Thank you for signing up 🎉</h2>
+              <p style="color:#555; font-size:16px; line-height:1.6;">
+                Your PS99Loot account has been created successfully.
+                You can now browse items, place orders, and get access to exclusive deals.
+              </p>
+              <a href="https://ps99loot.com" style="background:#6c5ce7; color:#fff; text-decoration:none; padding:14px 28px; border-radius:8px; font-weight:bold; display:inline-block; margin-top:15px;">
+                Start Shopping
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="background:#fafafa; padding:20px; color:#888; font-size:12px;">
+              © 2026 PS99Loot. All rights reserved.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
   return {
     subject: 'Welcome to PS99Loot',
-    textContent: `Welcome to PS99Loot!
-
-Your account has been created successfully.
-
-You can now sign in and start ordering random Huges at some of the lowest prices available.
-
-Thank you for joining PS99Loot.
-
-- PS99Loot Team`,
+    htmlContent,
+    textContent: 'Thank you for signing up to PS99Loot. Visit https://ps99loot.com to start shopping.',
   }
 }
 
-function buildOrderConfirmation(data: Record<string, string>): { subject: string; textContent: string } {
+function buildOrderConfirmation(data: Record<string, string>): { subject: string; htmlContent: string; textContent: string } {
+  const orderId = data.ORDER_ID || ''
+  const accessCode = data.ACCESS_CODE || ''
+  const amount = `$${data.TOTAL_USD || '0.00'}`
+
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Order Confirmed</title>
+</head>
+<body style="margin:0; padding:0; background:#f4f4f4; font-family:Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:30px 15px;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden;">
+          <tr>
+            <td align="center" style="background:#6c5ce7; padding:25px;">
+              <img src="https://www.ps99loot.com/shoplogo.png" alt="PS99Loot Logo" style="max-width:160px; display:block; margin-bottom:15px;">
+              <h1 style="color:#ffffff; margin:0;">Order Confirmed</h1>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:30px 25px;">
+              <h2 style="color:#222;">Thank you for your order!</h2>
+              <p style="color:#555; font-size:16px;">Your PS99Loot order has been confirmed. Here are your order details:</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px; border:1px solid #eee; border-radius:10px;">
+                <tr>
+                  <td style="padding:14px; color:#555;">Order ID</td>
+                  <td align="right" style="padding:14px; font-weight:bold;">${orderId}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px; color:#555;">Amount</td>
+                  <td align="right" style="padding:14px; font-weight:bold;">${amount}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px; color:#555;">Access Code</td>
+                  <td align="right" style="padding:14px;">
+                    <span style="background:#f1f1ff; border:2px dashed #6c5ce7; color:#6c5ce7; padding:10px 14px; border-radius:8px; font-weight:bold;">
+                      ${accessCode}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+              <p style="color:#777; font-size:14px; margin-top:25px;">Please keep your access code safe.</p>
+              <a href="https://ps99loot.com" style="background:#6c5ce7; color:#fff; text-decoration:none; padding:14px 28px; border-radius:8px; font-weight:bold; display:inline-block;">
+                Visit PS99Loot
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="background:#fafafa; padding:20px; color:#888; font-size:12px;">
+              © 2026 PS99Loot. All rights reserved.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+  const textContent = `PS99Loot Order Confirmed
+
+Order ID: ${orderId}
+Amount: ${amount}
+Access Code: ${accessCode}
+
+Please keep your access code safe. Visit https://ps99loot.com to track your order.`
+
   return {
     subject: 'PS99Loot Order Confirmation',
-    textContent: `Thank you for your order at PS99Loot.
-
-Your order has been created successfully.
-
-Order ID: ${data.ORDER_ID || ''}
-Access Code: ${data.ACCESS_CODE || ''}
-Quantity: ${data.QUANTITY || ''}x Random Huges
-Total: $${data.TOTAL_USD || ''}
-
-Please save your Order ID and Access Code somewhere safe.
-
-Your delivery will be handled manually after payment is confirmed.
-
-Thank you for choosing PS99Loot.
-
-- PS99Loot Team`,
+    htmlContent,
+    textContent,
   }
 }
 
@@ -73,7 +161,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    let email: { subject: string; textContent: string }
+    let email: { subject: string; htmlContent: string; textContent: string }
 
     switch (template) {
       case 'welcome':
@@ -93,6 +181,7 @@ Deno.serve(async (req) => {
       sender: SENDER,
       to: [{ email: to.email, name: to.name || to.email }],
       subject: email.subject,
+      htmlContent: email.htmlContent,
       textContent: email.textContent,
     }
 
@@ -117,7 +206,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    console.log(`Email sent successfully: ${template} to ${to.email}`, result)
+    console.log(`Email sent successfully: ${template} to ${to.email}`)
 
     return new Response(JSON.stringify({ success: true, messageId: result.messageId }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
