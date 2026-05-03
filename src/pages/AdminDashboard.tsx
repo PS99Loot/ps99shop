@@ -294,30 +294,6 @@ const AdminDashboard = () => {
                 </div>
                 {(creditTx || []).length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No credit activity yet</p>}
               </div>
-
-              <div className="bg-card border border-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold mb-3">CPX Research postbacks ({(cpxPostbacks || []).length})</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="border-b border-border text-left text-xs text-muted-foreground">
-                      <th className="p-2">Date</th><th className="p-2">Trans ID</th><th className="p-2">User</th><th className="p-2">Amount</th><th className="p-2">Status</th><th className="p-2">IP</th>
-                    </tr></thead>
-                    <tbody>
-                      {(cpxPostbacks || []).map((p: any) => (
-                        <tr key={p.id} className="border-b border-border hover:bg-muted/30">
-                          <td className="p-2 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</td>
-                          <td className="p-2 font-mono text-xs">{p.trans_id}</td>
-                          <td className="p-2 font-mono text-xs">{String(p.ext_user_id || '').slice(0,8)}…</td>
-                          <td className="p-2 font-mono">${Number(p.amount_usd).toFixed(2)}</td>
-                          <td className="p-2 text-xs">{p.status}</td>
-                          <td className="p-2 font-mono text-xs">{p.ip || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {(cpxPostbacks || []).length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No CPX postbacks yet</p>}
-              </div>
             </div>
           </TabsContent>
         </Tabs>
