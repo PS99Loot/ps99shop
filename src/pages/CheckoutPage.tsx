@@ -13,6 +13,9 @@ import { formatLineItem, generateOrderId, generateAccessCode } from '@/config/br
 import { sendOrderConfirmationEmail } from '@/services/emailService';
 import SupportCTA from '@/components/store/SupportCTA';
 import Trustpilot from '@/components/store/Trustpilot';
+import { getReferralCookie } from '@/lib/referral';
+import { useEffect } from 'react';
+import { Wallet } from 'lucide-react';
 
 interface AppliedPromo {
   code: string;
@@ -36,6 +39,16 @@ const CheckoutPage = () => {
   const [orderCreated, setOrderCreated] = useState<{ orderId: string; accessCode: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'crypto' | 'store_credit'>('crypto');
+  const [storeCredit, setStoreCredit] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setStoreCredit(0); return; }
+    (async () => {
+      const { data } = await (supabase as any).from('profiles').select('store_credit_usd').eq('id', user.id).maybeSingle();
+      setStoreCredit(Number(data?.store_credit_usd ?? 0));
+    })();
+  }, [user]);
 
   const discountAmount = appliedPromo?.discount_amount ?? 0;
   const finalTotal = Math.max(subtotal - discountAmount, 0);
@@ -124,6 +137,15 @@ const CheckoutPage = () => {
       const publicOrderId = generateOrderId();
       const accessCode = generateAccessCode();
 
+      // Resolve referrer (cookie) — server-side validation: not self, must exist
+      const refCode = getReferralCookie();
+      let referrerUserId: string | null = null;
+      if (refCode) {
+        const { data: refRow } = await (supabase as any)
+          .from('profiles').select('id').eq('referral_code', refCode.toUpperCase()).maybeSingle();
+        if (refRow?.id && refRow.id !== user?.id) referrerUserId = refRow.id;
+      }
+
       const { error: orderError } = await supabase.from('orders').insert({
         public_order_id: publicOrderId,
         access_code: accessCode,
@@ -137,7 +159,9 @@ const CheckoutPage = () => {
         promo_code_id: promoToUse?.promo_id || null,
         total_usd: finalTotalUsd,
         status: 'awaiting_payment',
-      });
+        ...(referrerUserId ? { referrer_user_id: referrerUserId, referral_code: refCode?.toUpperCase() } : {}),
+        payment_method: paymentMethod,
+      } as any);
 
       if (orderError) throw orderError;
 
@@ -192,6 +216,21 @@ const CheckoutPage = () => {
         return;
       }
 
+      // STORE CREDIT path
+      if (paymentMethod === 'store_credit') {
+        const { data: payRes, error: payErr } = await (supabase as any).rpc('pay_order_with_credit', {
+          p_order_id: publicOrderId, p_access_code: accessCode,
+        });
+        const row = Array.isArray(payRes) ? payRes[0] : payRes;
+        if (payErr || !row?.success) {
+          toast.error(row?.message || payErr?.message || 'Could not pay with credit');
+          return;
+        }
+        toast.success('Order paid with store credit');
+        setStoreCredit(Number(row.balance_after ?? 0));
+        return;
+      }
+
       setRedirecting(true);
       const { data: invoiceData, error: invoiceError } = await supabase.functions.invoke(
         'oxapay-create-invoice',
@@ -211,6 +250,21 @@ const CheckoutPage = () => {
       setRedirecting(false);
     }
   };
+
+  if (!user && !orderCreated) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-20 max-w-md text-center space-y-4">
+          <h1 className="font-display text-2xl font-bold">Sign in required</h1>
+          <p className="text-muted-foreground">Please sign up or log in to continue.</p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => navigate('/login')} className="gradient-primary text-primary-foreground">Log In</Button>
+            <Button variant="outline" onClick={() => navigate('/login')}>Sign Up</Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (items.length === 0 && !orderCreated) {
     return (
@@ -331,13 +385,56 @@ const CheckoutPage = () => {
               <h2 className="font-display text-lg font-bold flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" /> Secure Crypto Payment
               </h2>
+              {user && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Payment method</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('crypto')}
+                      className={`border rounded-md p-3 text-left text-sm ${paymentMethod === 'crypto' ? 'border-primary bg-primary/10' : 'border-border'}`}
+                    >
+                      <div className="font-semibold flex items-center gap-2"><Lock className="h-4 w-4" /> Crypto</div>
+                      <div className="text-xs text-muted-foreground mt-1">BTC, ETH, USDT…</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('store_credit')}
+                      disabled={storeCredit < finalTotal}
+                      className={`border rounded-md p-3 text-left text-sm disabled:opacity-50 ${paymentMethod === 'store_credit' ? 'border-primary bg-primary/10' : 'border-border'}`}
+                    >
+                      <div className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Store Credit</div>
+                      <div className="text-xs text-muted-foreground mt-1">Balance: ${storeCredit.toFixed(2)}</div>
+                    </button>
+                  </div>
+                  {paymentMethod === 'store_credit' && storeCredit < finalTotal && (
+                    <p className="text-xs text-destructive">Insufficient balance. <a href="/wallet" className="underline">Top up</a>.</p>
+                  )}
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
-                After placing your order, you'll be redirected to a secure payment page where you can choose your preferred cryptocurrency.
+                {paymentMethod === 'crypto'
+                  ? "After placing your order, you'll be redirected to a secure payment page where you can choose your preferred cryptocurrency."
+                  : 'Your store credit balance will be charged instantly.'}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Lock className="h-3 w-3" />
                 Powered by OxaPay — safe and fast crypto payments
               </div>
+              {paymentMethod === 'crypto' && (
+                <div className="mt-3 p-3 rounded-md border border-primary/30 bg-primary/5">
+                  <p className="text-sm font-semibold">Don't have crypto? No problem!</p>
+                  <p className="text-xs text-muted-foreground mb-2">Buy crypto instantly and complete your order.</p>
+                  <a
+                    href="https://swapped.com/trade"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                  >
+                    Buy Crypto <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
