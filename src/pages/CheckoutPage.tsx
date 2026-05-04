@@ -153,15 +153,6 @@ const CheckoutPage = () => {
       const publicOrderId = generateOrderId();
       const accessCode = generateAccessCode();
 
-      // Resolve referrer (cookie) — server-side validation: not self, must exist
-      const refCode = getReferralCookie();
-      let referrerUserId: string | null = null;
-      if (refCode) {
-        const { data: refRow } = await (supabase as any)
-          .from('profiles').select('id').eq('referral_code', refCode.toUpperCase()).maybeSingle();
-        if (refRow?.id && refRow.id !== user?.id) referrerUserId = refRow.id;
-      }
-
       const { error: orderError } = await supabase.from('orders').insert({
         public_order_id: publicOrderId,
         access_code: accessCode,
@@ -174,9 +165,7 @@ const CheckoutPage = () => {
         promo_code_id: promoToUse?.promo_id || null,
         total_usd: finalTotalUsd,
         status: 'awaiting_payment',
-        ...(referrerUserId ? { referrer_user_id: referrerUserId, referral_code: refCode?.toUpperCase() } : {}),
-        payment_method: paymentMethod,
-      } as any);
+      });
 
       if (orderError) throw orderError;
 
@@ -228,20 +217,6 @@ const CheckoutPage = () => {
         return;
       }
 
-      // STORE CREDIT path
-      if (paymentMethod === 'store_credit') {
-        const { data: payRes, error: payErr } = await (supabase as any).rpc('pay_order_with_credit', {
-          p_order_id: publicOrderId, p_access_code: accessCode,
-        });
-        const row = Array.isArray(payRes) ? payRes[0] : payRes;
-        if (payErr || !row?.success) {
-          toast.error(row?.message || payErr?.message || 'Could not pay with credit');
-          return;
-        }
-        toast.success('Order paid with store credit');
-        setStoreCredit(Number(row.balance_after ?? 0));
-        return;
-      }
 
       setRedirecting(true);
       const { data: invoiceData, error: invoiceError } = await supabase.functions.invoke(
