@@ -13,9 +13,6 @@ import { formatLineItem, generateOrderId, generateAccessCode } from '@/config/br
 import { sendOrderConfirmationEmail } from '@/services/emailService';
 import SupportCTA from '@/components/store/SupportCTA';
 import Trustpilot from '@/components/store/Trustpilot';
-import { getReferralCookie } from '@/lib/referral';
-import { useEffect } from 'react';
-import { Wallet } from 'lucide-react';
 
 interface AppliedPromo {
   code: string;
@@ -38,16 +35,6 @@ const CheckoutPage = () => {
   const [orderCreated, setOrderCreated] = useState<{ orderId: string; accessCode: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'crypto' | 'store_credit'>('crypto');
-  const [storeCredit, setStoreCredit] = useState(0);
-
-  useEffect(() => {
-    if (!user) { setStoreCredit(0); return; }
-    (async () => {
-      const { data } = await (supabase as any).from('profiles').select('store_credit_usd').eq('id', user.id).maybeSingle();
-      setStoreCredit(Number(data?.store_credit_usd ?? 0));
-    })();
-  }, [user]);
 
   const discountAmount = appliedPromo?.discount_amount ?? 0;
   const finalTotal = Math.max(subtotal - discountAmount, 0);
