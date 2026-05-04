@@ -19,8 +19,6 @@ import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import NotFound from "./pages/NotFound";
-import WalletPage from "./pages/WalletPage";
-import ReferralCapture from "./pages/ReferralCapture";
 
 const queryClient = new QueryClient();
 
@@ -40,13 +38,10 @@ const App = () => (
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/track" element={<TrackOrderPage />} />
-              
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/refund" element={<RefundPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/wallet" element={<WalletPage />} />
-              <Route path="/r/:code" element={<ReferralCapture />} />
               <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<NotFound />} />

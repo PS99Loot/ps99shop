@@ -4,31 +4,12 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { BRAND } from '@/config/brand';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
 
 const Header = () => {
   const { totalItems } = useCart();
   const { user, isAdmin, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [credit, setCredit] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!user) { setCredit(null); return; }
-    let cancelled = false;
-    const load = async () => {
-      const { data } = await (supabase as any)
-        .from('profiles').select('store_credit_usd').eq('id', user.id).maybeSingle();
-      if (!cancelled) setCredit(Number(data?.store_credit_usd ?? 0));
-    };
-    load();
-    const ch = supabase
-      .channel('hdr-credit-' + user.id)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
-          (p: any) => setCredit(Number(p.new?.store_credit_usd ?? 0)))
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [user]);
 
   const navLinks = [
     { to: '/', label: 'Home' },
@@ -58,15 +39,6 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          {user && credit !== null && (
-            <Link
-              to="/wallet"
-              className="hidden sm:inline-flex items-center px-3 py-1.5 rounded-md bg-muted text-sm font-medium hover:bg-muted/70 transition-colors"
-              title="Store credit balance"
-            >
-              ${credit.toFixed(2)} Credit
-            </Link>
-          )}
           {isAdmin && (
             <Link to="/admin">
               <Button variant="ghost" size="icon" className="text-warning">

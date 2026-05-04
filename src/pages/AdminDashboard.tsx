@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Package, ShoppingBag, CreditCard, Search, AlertTriangle, DollarSign, TrendingUp, LogOut, Tag, Wallet } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, CreditCard, Search, AlertTriangle, DollarSign, TrendingUp, LogOut, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { BRAND } from '@/config/brand';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -55,14 +55,6 @@ const AdminDashboard = () => {
     enabled: authenticated,
   });
 
-  const { data: creditTx } = useQuery({
-    queryKey: ['admin-credit-tx'],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from('credit_transactions').select('*').order('created_at', { ascending: false }).limit(500);
-      return data || [];
-    },
-    enabled: authenticated,
-  });
 
   const paidOrders = useMemo(() => (orders || []).filter(o => PAID_STATUSES.includes(o.status)), [orders]);
   const totalRevenue = useMemo(() => paidOrders.reduce((s, o) => s + Number(o.total_usd), 0), [paidOrders]);
@@ -124,7 +116,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="products"><Package className="h-4 w-4 mr-1" /> Products</TabsTrigger>
             <TabsTrigger value="payments"><CreditCard className="h-4 w-4 mr-1" /> Payments</TabsTrigger>
             <TabsTrigger value="promos"><Tag className="h-4 w-4 mr-1" /> Promo Codes</TabsTrigger>
-            <TabsTrigger value="credit"><Wallet className="h-4 w-4 mr-1" /> Store Credit</TabsTrigger>
+            
           </TabsList>
 
           <TabsContent value="overview">
@@ -269,33 +261,6 @@ const AdminDashboard = () => {
             <PromoCodesManager />
           </TabsContent>
 
-          <TabsContent value="credit">
-            <div className="space-y-6">
-              <div className="bg-card border border-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold mb-3">Credit transactions ({(creditTx || []).length})</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="border-b border-border text-left text-xs text-muted-foreground">
-                      <th className="p-2">Date</th><th className="p-2">User</th><th className="p-2">Type</th><th className="p-2">Amount</th><th className="p-2">Balance</th><th className="p-2">Reference</th>
-                    </tr></thead>
-                    <tbody>
-                      {(creditTx || []).map((t: any) => (
-                        <tr key={t.id} className="border-b border-border hover:bg-muted/30">
-                          <td className="p-2 text-xs text-muted-foreground">{new Date(t.created_at).toLocaleString()}</td>
-                          <td className="p-2 font-mono text-xs">{String(t.user_id).slice(0,8)}…</td>
-                          <td className="p-2"><span className="px-2 py-0.5 rounded bg-muted text-xs">{t.type}</span></td>
-                          <td className={`p-2 font-mono ${Number(t.amount) >= 0 ? 'text-success' : 'text-destructive'}`}>{Number(t.amount) >= 0 ? '+' : ''}${Number(t.amount).toFixed(2)}</td>
-                          <td className="p-2 font-mono">${Number(t.balance_after).toFixed(2)}</td>
-                          <td className="p-2 font-mono text-xs">{t.reference || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {(creditTx || []).length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No credit activity yet</p>}
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
