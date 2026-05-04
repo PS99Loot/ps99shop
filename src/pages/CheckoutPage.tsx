@@ -199,19 +199,16 @@ const CheckoutPage = () => {
       setOrderCreated({ orderId: publicOrderId, accessCode });
       clearCart();
 
-      const recipientEmail = email.trim() || user?.email;
-      if (recipientEmail) {
-        const itemsSummary = items.map(i => formatLineItem(i.name, i.quantity)).join(', ');
-        sendOrderConfirmationEmail(recipientEmail, {
-          orderId: publicOrderId,
-          accessCode,
-          itemsSummary,
-          subtotalUsd: subtotal.toFixed(2),
-          promoCode: promoToUse?.code,
-          discountAmount: finalDiscount.toFixed(2),
-          totalUsd: finalTotalUsd.toFixed(2),
-        });
-      }
+      const itemsSummary = items.map(i => formatLineItem(i.name, i.quantity)).join(', ');
+      sendOrderConfirmationEmail(trimmedEmail, {
+        orderId: publicOrderId,
+        accessCode,
+        itemsSummary,
+        subtotalUsd: subtotal.toFixed(2),
+        promoCode: promoToUse?.code,
+        discountAmount: finalDiscount.toFixed(2),
+        totalUsd: finalTotalUsd.toFixed(2),
+      });
 
       toast.success('Order created! Redirecting to payment...');
 
