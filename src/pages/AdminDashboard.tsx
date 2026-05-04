@@ -261,33 +261,6 @@ const AdminDashboard = () => {
             <PromoCodesManager />
           </TabsContent>
 
-          <TabsContent value="credit">
-            <div className="space-y-6">
-              <div className="bg-card border border-border rounded-lg p-4">
-                <h3 className="text-sm font-semibold mb-3">Credit transactions ({(creditTx || []).length})</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="border-b border-border text-left text-xs text-muted-foreground">
-                      <th className="p-2">Date</th><th className="p-2">User</th><th className="p-2">Type</th><th className="p-2">Amount</th><th className="p-2">Balance</th><th className="p-2">Reference</th>
-                    </tr></thead>
-                    <tbody>
-                      {(creditTx || []).map((t: any) => (
-                        <tr key={t.id} className="border-b border-border hover:bg-muted/30">
-                          <td className="p-2 text-xs text-muted-foreground">{new Date(t.created_at).toLocaleString()}</td>
-                          <td className="p-2 font-mono text-xs">{String(t.user_id).slice(0,8)}…</td>
-                          <td className="p-2"><span className="px-2 py-0.5 rounded bg-muted text-xs">{t.type}</span></td>
-                          <td className={`p-2 font-mono ${Number(t.amount) >= 0 ? 'text-success' : 'text-destructive'}`}>{Number(t.amount) >= 0 ? '+' : ''}${Number(t.amount).toFixed(2)}</td>
-                          <td className="p-2 font-mono">${Number(t.balance_after).toFixed(2)}</td>
-                          <td className="p-2 font-mono text-xs">{t.reference || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {(creditTx || []).length === 0 && <p className="p-6 text-center text-muted-foreground text-sm">No credit activity yet</p>}
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
     </div>
