@@ -28,7 +28,6 @@ const CheckoutPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [robloxUsername, setRobloxUsername] = useState('');
-  const [discordUsername, setDiscordUsername] = useState('');
   const [email, setEmail] = useState('');
   const [promoInput, setPromoInput] = useState('');
   const [applyingPromo, setApplyingPromo] = useState(false);
@@ -45,19 +44,46 @@ const CheckoutPage = () => {
     toast.success(`${label || 'Text'} copied to clipboard`);
   };
 
+  // Direct table query — no RPC, no edge function. RLS allows public SELECT on promo_codes.
   const validatePromoDirect = async (code: string, sub: number) => {
-    console.log('[promo] validating via direct RPC (no edge function)', { code, sub });
-    const { data, error } = await supabase.rpc('validate_promo_code', {
-      p_code: code,
-      p_subtotal: sub,
-    });
+    const trimmed = code.trim();
+    if (!trimmed) return { valid: false, reason: 'Invalid promo code' };
+
+    const { data, error } = await supabase
+      .from('promo_codes')
+      .select('id, code, active, discount_type, discount_value, expiration_date, usage_limit, usage_count')
+      .ilike('code', trimmed)
+      .maybeSingle();
+
     if (error) {
-      console.error('[promo] RPC error', error);
-      return { valid: false, reason: 'Could not validate promo code' };
+      console.error('[promo] query error', error);
+      return { valid: false, reason: 'Invalid promo code' };
     }
-    const row = Array.isArray(data) ? data[0] : data;
-    console.log('[promo] result', row);
-    return row || { valid: false, reason: 'Invalid promo code' };
+    if (!data) return { valid: false, reason: 'Invalid promo code' };
+    if (!data.active) return { valid: false, reason: 'Inactive promo code' };
+    if (data.expiration_date && new Date(data.expiration_date) < new Date()) {
+      return { valid: false, reason: 'Expired promo code' };
+    }
+    if (data.usage_limit !== null && data.usage_count >= data.usage_limit) {
+      return { valid: false, reason: 'Usage limit reached' };
+    }
+
+    const dv = Number(data.discount_value);
+    let discount = data.discount_type === 'percentage'
+      ? Math.round((sub * dv) / 100 * 100) / 100
+      : dv;
+    if (discount > sub) discount = sub;
+    const finalTotal = Math.max(sub - discount, 0);
+
+    return {
+      valid: true,
+      promo_id: data.id,
+      code: data.code,
+      discount_type: data.discount_type,
+      discount_value: dv,
+      discount_amount: discount,
+      final_total: finalTotal,
+    };
   };
 
   const handleApplyPromo = async () => {
