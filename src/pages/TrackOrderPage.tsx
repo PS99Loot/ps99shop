@@ -131,7 +131,7 @@ const TrackOrderPage = () => {
 
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Roblox</span><span>{order.buyer_roblox_username}</span></div>
-                {order.buyer_discord_username && <div className="flex justify-between"><span className="text-muted-foreground">Discord</span><span>{order.buyer_discord_username}</span></div>}
+                {order.buyer_email && <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{order.buyer_email}</span></div>}
                 {order.selected_crypto && <div className="flex justify-between"><span className="text-muted-foreground">Crypto</span><span>{order.selected_crypto}</span></div>}
                 <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span>${Number(order.total_usd).toFixed(2)}</span></div>
                 {order.queue_position && <div className="flex justify-between"><span className="text-muted-foreground">Queue Position</span><span>#{order.queue_position}</span></div>}
