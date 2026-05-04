@@ -55,14 +55,6 @@ const AdminDashboard = () => {
     enabled: authenticated,
   });
 
-  const { data: creditTx } = useQuery({
-    queryKey: ['admin-credit-tx'],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from('credit_transactions').select('*').order('created_at', { ascending: false }).limit(500);
-      return data || [];
-    },
-    enabled: authenticated,
-  });
 
   const paidOrders = useMemo(() => (orders || []).filter(o => PAID_STATUSES.includes(o.status)), [orders]);
   const totalRevenue = useMemo(() => paidOrders.reduce((s, o) => s + Number(o.total_usd), 0), [paidOrders]);
