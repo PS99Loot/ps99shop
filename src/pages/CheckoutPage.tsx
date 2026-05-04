@@ -238,20 +238,8 @@ const CheckoutPage = () => {
     }
   };
 
-  if (!user && !orderCreated) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-20 max-w-md text-center space-y-4">
-          <h1 className="font-display text-2xl font-bold">Sign in required</h1>
-          <p className="text-muted-foreground">Please sign up or log in to continue.</p>
-          <div className="flex gap-3 justify-center">
-            <Button onClick={() => navigate('/login')} className="gradient-primary text-primary-foreground">Log In</Button>
-            <Button variant="outline" onClick={() => navigate('/login')}>Sign Up</Button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  // Guest checkout allowed — no sign-in required.
+
 
   if (items.length === 0 && !orderCreated) {
     return (
