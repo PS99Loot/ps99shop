@@ -120,6 +120,9 @@ const CheckoutPage = () => {
 
   const handleCreateOrder = async () => {
     if (!robloxUsername.trim()) { toast.error('Roblox username is required'); return; }
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) { toast.error('Email is required'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) { toast.error('Please enter a valid email'); return; }
     if (items.length === 0) { toast.error('Cart is empty'); return; }
 
     setLoading(true);
@@ -155,8 +158,7 @@ const CheckoutPage = () => {
         access_code: accessCode,
         user_id: user?.id || null,
         buyer_roblox_username: robloxUsername.trim(),
-        buyer_discord_username: discordUsername.trim() || null,
-        buyer_email: email.trim() || null,
+        buyer_email: trimmedEmail,
         subtotal_usd: subtotal,
         discount_amount: finalDiscount,
         promo_code: promoToUse?.code || null,
@@ -344,12 +346,9 @@ const CheckoutPage = () => {
                 <Input value={robloxUsername} onChange={e => setRobloxUsername(e.target.value)} placeholder="Your Roblox username" className="bg-muted" />
               </div>
               <div>
-                <Label>Discord Username <span className="text-muted-foreground">(optional)</span></Label>
-                <Input value={discordUsername} onChange={e => setDiscordUsername(e.target.value)} placeholder="username#0000" className="bg-muted" />
-              </div>
-              <div>
-                <Label>Email <span className="text-muted-foreground">(optional, for order updates)</span></Label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="For order updates" className="bg-muted" />
+                <Label>Email *</Label>
+                <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="bg-muted" />
+                <p className="text-xs text-muted-foreground mt-1">Used to send your order confirmation.</p>
               </div>
             </div>
 
