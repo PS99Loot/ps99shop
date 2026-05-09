@@ -84,6 +84,52 @@ Deno.serve(async (req) => {
     await supabase.from("orders").update(updateData).eq("id", order.id);
 
     if (isPaid && order.status !== "paid") {
+      // Discord webhook notification (fire-and-forget, never break order flow)
+      try {
+        const discordUrl = Deno.env.get("DISCORD_ORDERS_WEBHOOK_URL");
+        if (discordUrl) {
+          const { data: items } = await supabase
+            .from("order_items")
+            .select("quantity, product_name_snapshot")
+            .eq("order_id", order.id);
+          const { data: fullOrder } = await supabase
+            .from("orders")
+            .select("buyer_roblox_username, buyer_email, total_usd, public_order_id")
+            .eq("id", order.id)
+            .single();
+
+          const itemsText = (items && items.length > 0)
+            ? items.map((i: any) => `${i.quantity}x ${i.product_name_snapshot}`).join("\n")
+            : "—";
+
+          const embed = {
+            title: "🛒 New Paid Order",
+            color: 0x22c55e,
+            fields: [
+              { name: "👤 Roblox Username", value: fullOrder?.buyer_roblox_username || "Not provided", inline: true },
+              { name: "📧 Email", value: fullOrder?.buyer_email || "Not provided", inline: true },
+              { name: "🆔 Order ID", value: fullOrder?.public_order_id || order.public_order_id, inline: true },
+              { name: "📦 Items Ordered", value: itemsText, inline: false },
+              { name: "💰 Amount Paid", value: `$${Number(fullOrder?.total_usd ?? order.total_usd).toFixed(2)} USD`, inline: true },
+              { name: "🕒 Paid At", value: new Date().toUTCString(), inline: true },
+            ],
+            footer: { text: "PS99Loot Orders" },
+            timestamp: new Date().toISOString(),
+          };
+
+          const dRes = await fetch(discordUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ embeds: [embed] }),
+          });
+          if (!dRes.ok) {
+            console.error("Discord webhook failed:", dRes.status, await dRes.text());
+          }
+        }
+      } catch (dErr) {
+        console.error("Discord webhook error:", dErr);
+      }
+
       if (order.promo_code_id) {
         await supabase.rpc("increment_promo_usage", { p_promo_id: order.promo_code_id });
       }
